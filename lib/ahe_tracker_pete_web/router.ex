@@ -20,7 +20,11 @@ defmodule AheTrackerPeteWeb.Router do
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", AheTrackerPeteWeb do
-  #   pipe_through :api
-  # end
+   scope "/api", AheTrackerPeteWeb do
+     pipe_through :api
+
+     resources "/users", UserController, except: [:new, :edit]
+     resources "/foods", FoodController, except: [:new, :edit]
+     resources "/counts", CountController, except: [:new, :edit]
+  end
 end
