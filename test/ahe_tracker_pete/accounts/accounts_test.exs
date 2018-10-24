@@ -6,8 +6,18 @@ defmodule AheTrackerPete.AccountsTest do
   describe "users" do
     alias AheTrackerPete.Accounts.User
 
-    @valid_attrs %{email: "some email", first_name: "some first_name", last_name: "some last_name", password: "some password"}
-    @update_attrs %{email: "some updated email", first_name: "some updated first_name", last_name: "some updated last_name", password: "some updated password"}
+    @valid_attrs %{
+      email: "some email",
+      first_name: "some first_name",
+      last_name: "some last_name",
+      password: "some password"
+    }
+    @update_attrs %{
+      email: "some updated email",
+      first_name: "some updated first_name",
+      last_name: "some updated last_name",
+      password: "some updated password"
+    }
     @invalid_attrs %{email: nil, first_name: nil, last_name: nil, password: nil}
 
     def user_fixture(attrs \\ %{}) do
@@ -45,7 +55,6 @@ defmodule AheTrackerPete.AccountsTest do
       user = user_fixture()
       assert {:ok, %User{} = user} = Accounts.update_user(user, @update_attrs)
 
-      
       assert user.email == "some updated email"
       assert user.first_name == "some updated first_name"
       assert user.last_name == "some updated last_name"

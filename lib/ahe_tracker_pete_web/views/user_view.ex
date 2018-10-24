@@ -11,10 +11,12 @@ defmodule AheTrackerPeteWeb.UserView do
   end
 
   def render("user.json", %{user: user}) do
-    %{id: user.id,
+    %{
+      id: user.id,
       first_name: user.first_name,
       last_name: user.last_name,
       email: user.email,
-      password: user.password}
+      password: user.password
+    }
   end
 end

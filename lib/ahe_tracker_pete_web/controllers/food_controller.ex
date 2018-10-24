@@ -4,7 +4,7 @@ defmodule AheTrackerPeteWeb.FoodController do
   alias AheTrackerPete.Eating
   alias AheTrackerPete.Eating.Food
 
-  action_fallback AheTrackerPeteWeb.FallbackController
+  action_fallback(AheTrackerPeteWeb.FallbackController)
 
   def index(conn, _params) do
     foods = Eating.list_foods()

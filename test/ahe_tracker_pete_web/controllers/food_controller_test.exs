@@ -79,9 +79,9 @@ defmodule AheTrackerPeteWeb.FoodControllerTest do
       conn = delete(conn, Routes.food_path(conn, :delete, food))
       assert response(conn, 204)
 
-      assert_error_sent 404, fn ->
+      assert_error_sent(404, fn ->
         get(conn, Routes.food_path(conn, :show, food))
-      end
+      end)
     end
   end
 

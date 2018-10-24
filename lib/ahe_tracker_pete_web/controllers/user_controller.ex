@@ -4,7 +4,7 @@ defmodule AheTrackerPeteWeb.UserController do
   alias AheTrackerPete.Accounts
   alias AheTrackerPete.Accounts.User
 
-  action_fallback AheTrackerPeteWeb.FallbackController
+  action_fallback(AheTrackerPeteWeb.FallbackController)
 
   def index(conn, _params) do
     users = Accounts.list_users()
