@@ -3,6 +3,7 @@ defmodule AheTrackerPeteWeb.PageControllerTest do
 
   test "GET /", %{conn: conn} do
     conn = get(conn, "/")
-    assert html_response(conn, 200) =~ "Welcome to Phoenix!"
+    # This test just checks that the html returned from / contains this string
+    assert html_response(conn, 200) =~ "If you see this text, Elm is broken."
   end
 end

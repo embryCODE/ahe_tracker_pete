@@ -43,7 +43,6 @@ defmodule AheTrackerPete.EatingTest do
       food = food_fixture()
       assert {:ok, %Food{} = food} = Eating.update_food(food, @update_attrs)
 
-      
       assert food.category == "some updated category"
       assert food.name == "some updated name"
     end
@@ -69,9 +68,9 @@ defmodule AheTrackerPete.EatingTest do
   describe "counts" do
     alias AheTrackerPete.Eating.Count
 
-    @valid_attrs %{"": 120.5, count: "some count"}
-    @update_attrs %{"": 456.7, count: "some updated count"}
-    @invalid_attrs %{"": nil, count: nil}
+    @valid_attrs %{count: 120.5}
+    @update_attrs %{count: 456.7}
+    @invalid_attrs %{count: nil}
 
     def count_fixture(attrs \\ %{}) do
       {:ok, count} =
@@ -94,8 +93,7 @@ defmodule AheTrackerPete.EatingTest do
 
     test "create_count/1 with valid data creates a count" do
       assert {:ok, %Count{} = count} = Eating.create_count(@valid_attrs)
-      assert count. == 120.5
-      assert count.count == "some count"
+      assert count.count == 120.5
     end
 
     test "create_count/1 with invalid data returns error changeset" do
@@ -106,9 +104,7 @@ defmodule AheTrackerPete.EatingTest do
       count = count_fixture()
       assert {:ok, %Count{} = count} = Eating.update_count(count, @update_attrs)
 
-      
-      assert count. == 456.7
-      assert count.count == "some updated count"
+      assert count.count == 456.7
     end
 
     test "update_count/2 with invalid data returns error changeset" do

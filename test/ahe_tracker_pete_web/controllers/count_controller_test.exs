@@ -5,14 +5,12 @@ defmodule AheTrackerPeteWeb.CountControllerTest do
   alias AheTrackerPete.Eating.Count
 
   @create_attrs %{
-    : 120.5,
-    count: "some count"
+    count: 120.5
   }
   @update_attrs %{
-    : 456.7,
-    count: "some updated count"
+    count: 456.7
   }
-  @invalid_attrs %{"": nil, count: nil}
+  @invalid_attrs %{count: nil}
 
   def fixture(:count) do
     {:ok, count} = Eating.create_count(@create_attrs)
@@ -39,8 +37,7 @@ defmodule AheTrackerPeteWeb.CountControllerTest do
 
       assert %{
                "id" => id,
-               "" => 120.5,
-               "count" => "some count"
+               "count" => 120.5
              } = json_response(conn, 200)["data"]
     end
 
@@ -61,8 +58,7 @@ defmodule AheTrackerPeteWeb.CountControllerTest do
 
       assert %{
                "id" => id,
-               "" => 456.7,
-               "count" => "some updated count"
+               "count" => 456.7
              } = json_response(conn, 200)["data"]
     end
 
@@ -79,9 +75,9 @@ defmodule AheTrackerPeteWeb.CountControllerTest do
       conn = delete(conn, Routes.count_path(conn, :delete, count))
       assert response(conn, 204)
 
-      assert_error_sent 404, fn ->
+      assert_error_sent(404, fn ->
         get(conn, Routes.count_path(conn, :show, count))
-      end
+      end)
     end
   end
 
