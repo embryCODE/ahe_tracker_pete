@@ -4,6 +4,8 @@ defmodule AheTrackerPete.Eating.Count do
 
   schema "counts" do
     field(:count, :float)
+    field(:user_id, :integer)
+    field(:food_id, :integer)
 
     timestamps()
   end
@@ -11,7 +13,7 @@ defmodule AheTrackerPete.Eating.Count do
   @doc false
   def changeset(count, attrs) do
     count
-    |> cast(attrs, [:count])
-    |> validate_required([:count])
+    |> cast(attrs, [:count, :user_id, :food_id])
+    |> validate_required([:count, :user_id, :food_id])
   end
 end

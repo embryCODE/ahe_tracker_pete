@@ -11,6 +11,6 @@ defmodule AheTrackerPeteWeb.CountView do
   end
 
   def render("count.json", %{count: count}) do
-    %{id: count.id, count: count.count}
+    %{id: count.id, count: count.count, food_id: count.food_id, user_id: count.user_id}
   end
 end
