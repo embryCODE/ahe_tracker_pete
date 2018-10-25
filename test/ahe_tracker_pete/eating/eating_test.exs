@@ -1,6 +1,7 @@
 defmodule AheTrackerPete.EatingTest do
   use AheTrackerPete.DataCase
 
+  alias AheTrackerPete.Accounts
   alias AheTrackerPete.Eating
 
   describe "foods" do
@@ -68,14 +69,28 @@ defmodule AheTrackerPete.EatingTest do
   describe "counts" do
     alias AheTrackerPete.Eating.Count
 
-    @valid_attrs %{count: 120.5}
-    @update_attrs %{count: 456.7}
-    @invalid_attrs %{count: nil}
+    defp valid_attrs(), do: create_attrs(120.5)
+    defp update_attrs(), do: create_attrs(456.7)
+    defp invalid_attrs(), do: create_attrs(nil)
+
+    defp create_attrs(counts_count) do
+      {:ok, food} = Eating.create_food(%{name: "Vegetables", category: "Essential"})
+
+      {:ok, user} =
+        Accounts.create_user(%{
+          first_name: "Testy",
+          last_name: "McTesterson",
+          email: "testy@example.com",
+          password: "password"
+        })
+
+      %{count: counts_count, user_id: user.id, food_id: food.id}
+    end
 
     def count_fixture(attrs \\ %{}) do
       {:ok, count} =
         attrs
-        |> Enum.into(@valid_attrs)
+        |> Enum.into(valid_attrs())
         |> Eating.create_count()
 
       count
@@ -92,24 +107,24 @@ defmodule AheTrackerPete.EatingTest do
     end
 
     test "create_count/1 with valid data creates a count" do
-      assert {:ok, %Count{} = count} = Eating.create_count(@valid_attrs)
+      assert {:ok, %Count{} = count} = Eating.create_count(valid_attrs())
       assert count.count == 120.5
     end
 
     test "create_count/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Eating.create_count(@invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Eating.create_count(invalid_attrs())
     end
 
     test "update_count/2 with valid data updates the count" do
       count = count_fixture()
-      assert {:ok, %Count{} = count} = Eating.update_count(count, @update_attrs)
+      assert {:ok, %Count{} = count} = Eating.update_count(count, update_attrs())
 
       assert count.count == 456.7
     end
 
     test "update_count/2 with invalid data returns error changeset" do
       count = count_fixture()
-      assert {:error, %Ecto.Changeset{}} = Eating.update_count(count, @invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Eating.update_count(count, invalid_attrs())
       assert count == Eating.get_count!(count.id)
     end
 

@@ -1,19 +1,30 @@
 defmodule AheTrackerPeteWeb.CountControllerTest do
   use AheTrackerPeteWeb.ConnCase
 
+  alias AheTrackerPete.Accounts
   alias AheTrackerPete.Eating
   alias AheTrackerPete.Eating.Count
 
-  @create_attrs %{
-    count: 120.5
-  }
-  @update_attrs %{
-    count: 456.7
-  }
-  @invalid_attrs %{count: nil}
+  defp valid_attrs(), do: create_attrs(120.5)
+  defp update_attrs(), do: create_attrs(456.7)
+  defp invalid_attrs(), do: create_attrs(nil)
+
+  defp create_attrs(counts_count) do
+    {:ok, food} = Eating.create_food(%{name: "Vegetables", category: "Essential"})
+
+    {:ok, user} =
+      Accounts.create_user(%{
+        first_name: "Testy",
+        last_name: "McTesterson",
+        email: "testy@example.com",
+        password: "password"
+      })
+
+    %{count: counts_count, user_id: user.id, food_id: food.id}
+  end
 
   def fixture(:count) do
-    {:ok, count} = Eating.create_count(@create_attrs)
+    {:ok, count} = Eating.create_count(valid_attrs())
     count
   end
 
@@ -30,7 +41,7 @@ defmodule AheTrackerPeteWeb.CountControllerTest do
 
   describe "create count" do
     test "renders count when data is valid", %{conn: conn} do
-      conn = post(conn, Routes.count_path(conn, :create), count: @create_attrs)
+      conn = post(conn, Routes.count_path(conn, :create), count: valid_attrs())
       assert %{"id" => id} = json_response(conn, 201)["data"]
 
       conn = get(conn, Routes.count_path(conn, :show, id))
@@ -42,7 +53,7 @@ defmodule AheTrackerPeteWeb.CountControllerTest do
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
-      conn = post(conn, Routes.count_path(conn, :create), count: @invalid_attrs)
+      conn = post(conn, Routes.count_path(conn, :create), count: invalid_attrs())
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
@@ -51,7 +62,7 @@ defmodule AheTrackerPeteWeb.CountControllerTest do
     setup [:create_count]
 
     test "renders count when data is valid", %{conn: conn, count: %Count{id: id} = count} do
-      conn = put(conn, Routes.count_path(conn, :update, count), count: @update_attrs)
+      conn = put(conn, Routes.count_path(conn, :update, count), count: update_attrs())
       assert %{"id" => ^id} = json_response(conn, 200)["data"]
 
       conn = get(conn, Routes.count_path(conn, :show, id))
@@ -63,7 +74,7 @@ defmodule AheTrackerPeteWeb.CountControllerTest do
     end
 
     test "renders errors when data is invalid", %{conn: conn, count: count} do
-      conn = put(conn, Routes.count_path(conn, :update, count), count: @invalid_attrs)
+      conn = put(conn, Routes.count_path(conn, :update, count), count: invalid_attrs())
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
