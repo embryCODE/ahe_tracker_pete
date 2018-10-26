@@ -5,6 +5,7 @@ const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
+// noinspection JSUnusedLocalSymbols
 module.exports = (env, options) => ({
   optimization: {
     minimizer: [
@@ -41,7 +42,7 @@ module.exports = (env, options) => ({
             // Specifies a custom location for Elm files within the project
             cwd: path.resolve(__dirname, "elm"),
             // Sends the --optimize flag to Elm make
-            optimize: true
+            optimize: false
           }
         }
       }
