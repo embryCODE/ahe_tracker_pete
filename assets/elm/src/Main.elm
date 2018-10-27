@@ -8,6 +8,7 @@ import Http
 import Json.Decode as Decode exposing (..)
 import Url.Builder as Url
 import Debug
+import List exposing (foldl)
 
 
 -- MAIN
@@ -53,41 +54,19 @@ type alias Count =
     }
 
 
-type alias FoodCount =
-    { name : String
-    , count : String
-    }
-
-
-
--- TODO: clean this up to just empty strings on init
-
-
 initialModel =
-    { user =
-        { first_name = "Mason"
-        , last_name = "Embry"
-        , email = "mason@example.com"
-        , id = 2
-        }
+    { user = User "" "" "" 0
     , foods =
-        [ { name = "Vegetables", category = "Essential", id = 1 }
-        , { name = "Fruits", category = "Essential", id = 2 }
-        ]
+        [ Food "" "" 0 ]
     , counts =
-        [ { id = 1
-          , user_id = 1
-          , food_id = 1
-          , count = 3.5
-          }
-        ]
+        [ Count 0 0 0 0 ]
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( initialModel
-    , Cmd.batch [ readUser "1", listFoods, listCounts ]
+    , Cmd.batch [ readUser "2", listFoods, listCounts ]
     )
 
 
@@ -178,26 +157,164 @@ view model =
                 (List.map
                     (\( categoryName, foodsInCategory ) ->
                         div []
-                            [ p [] [ text categoryName ]
+                            [ p [] [ text (convertCategoryToString categoryName) ]
                             , ul []
                                 (List.map
-                                    (\food -> li [] [ text (food.name ++ " " ++ food.count) ])
+                                    (\food -> li [] [ text (food.name ++ " " ++ (String.fromFloat food.count)) ])
                                     foodsInCategory
                                 )
                             ]
                     )
-                    (formatFoods model.foods model.counts)
+                    (formatFoods model.user model.foods model.counts)
                 )
             ]
         ]
 
 
-formatFoods : List Food -> List Count -> List ( String, List FoodCount )
-formatFoods foodsFromApi countsFromApi =
-    [ ( "Essential", [ FoodCount "Vegetables" "3", FoodCount "Fruits" "4" ] )
-    , ( "Recommended", [ FoodCount "Whole Grains" "2", FoodCount "Dairy" "3", FoodCount "Nuts, Seeds, and Healthy Oils" "3" ] )
-    , ( "Acceptable", [ FoodCount "Sweets" "3", FoodCount "Fried Foods" "1" ] )
-    ]
+convertCategoryToString : Category -> String
+convertCategoryToString category =
+    case category of
+        Essential ->
+            "Essential"
+
+        Recommended ->
+            "Recommended"
+
+        Acceptable ->
+            "Acceptable"
+
+
+type alias FoodCount =
+    { name : String
+    , count : Float
+    }
+
+
+type alias CategoryGroup =
+    ( Category, List FoodCount )
+
+
+type Category
+    = Essential
+    | Recommended
+    | Acceptable
+
+
+formatFoods : User -> List Food -> List Count -> List CategoryGroup
+formatFoods user foodsFromApi countsFromApi =
+    foodsFromApi
+        |> processFoodsByCategory
+        |> addCountsToFoodsByCategory user countsFromApi
+        |> orderByCategory
+
+
+processFoodsByCategory : List Food -> List ( Category, List Food )
+processFoodsByCategory foods =
+    foldl processFood [] foods
+
+
+processFood : Food -> List ( Category, List Food ) -> List ( Category, List Food )
+processFood food acc =
+    -- look at food.category, convert to Category type
+    let
+        currentFoodCategory =
+            (convertStringToCategory food.category)
+    in
+        -- if the acc has a tuple with that Category,
+        if acc |> List.any (\catTupleToTest -> (Tuple.first catTupleToTest) == currentFoodCategory) then
+            -- add this food to the list of foods in that tuple
+            acc
+                |> List.map
+                    (\( cat, foodListToAddTo ) ->
+                        if cat == currentFoodCategory then
+                            ( cat, food :: foodListToAddTo )
+                        else
+                            ( cat, foodListToAddTo )
+                    )
+        else
+            -- otherwise, add that tuple to the list and plug this food into the list of foods in that tuple
+            ( currentFoodCategory, [ food ] ) :: acc
+
+
+convertStringToCategory : String -> Category
+convertStringToCategory string =
+    case string of
+        "Essential" ->
+            Essential
+
+        "Recommended" ->
+            Recommended
+
+        "Acceptable" ->
+            Acceptable
+
+        _ ->
+            Essential
+
+
+addCountsToFoodsByCategory : User -> List Count -> List ( Category, List Food ) -> List CategoryGroup
+addCountsToFoodsByCategory user counts list =
+    list
+        -- For each tuple in the list
+        |> List.map
+            (\( category, foodList ) ->
+                -- Look at each food in the second item of the tuple and replace it with a FoodCount
+                ( category, (List.map (\food -> replaceFoodWithFoodCount user counts food) foodList) )
+            )
+
+
+replaceFoodWithFoodCount : User -> List Count -> Food -> FoodCount
+replaceFoodWithFoodCount user counts food =
+    -- Look at every member of the list of counts
+    let
+        foundCount =
+            List.head
+                (List.filter
+                    (\count ->
+                        -- If count.food_id === food.id and count.user_id === user.id
+                        (count.food_id == food.id) && (count.user_id == user.id)
+                    )
+                    counts
+                )
+    in
+        -- Return a FoodCount with food.name and the found count.count
+        case foundCount of
+            Just countThatWasFound ->
+                FoodCount food.name countThatWasFound.count
+
+            -- Otherwise assume the count for that food is 0
+            Nothing ->
+                FoodCount food.name 0
+
+
+orderByCategory : List CategoryGroup -> List CategoryGroup
+orderByCategory listToOrder =
+    listToOrder |> List.sortWith sortByCategory
+
+
+sortByCategory : CategoryGroup -> CategoryGroup -> Order
+sortByCategory ( category1, _ ) ( category2, _ ) =
+    case ( category1, category2 ) of
+        ( Essential, Recommended ) ->
+            LT
+
+        ( Essential, Acceptable ) ->
+            LT
+
+        ( Recommended, Acceptable ) ->
+            LT
+
+        ( Recommended, Essential ) ->
+            GT
+
+        ( Acceptable, Essential ) ->
+            GT
+
+        ( Acceptable, Recommended ) ->
+            GT
+
+        _ ->
+            EQ
 
 
 
