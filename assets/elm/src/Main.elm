@@ -66,7 +66,7 @@ initialModel =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( initialModel
-    , Cmd.batch [ readUser "2", listFoods, listCounts ]
+    , Cmd.batch [ readUser "2", listFoods, listCountsForUser 2 ]
     )
 
 
@@ -375,24 +375,24 @@ foodDecoder =
 
 
 
--- listCounts
+-- listCountsForUser
 
 
-listCounts : Cmd Msg
-listCounts =
-    Http.send ReceiveCounts (Http.get (toReadCountsUrl) countListDecoder)
+listCountsForUser : Int -> Cmd Msg
+listCountsForUser userId =
+    Http.send ReceiveCounts (Http.get (toListCountsForUserUrl userId) countListDecoder)
 
 
-toReadCountsUrl : String
-toReadCountsUrl =
+toListCountsForUserUrl : Int -> String
+toListCountsForUserUrl userId =
     Url.crossOrigin "http://localhost:4000"
-        [ "api", "counts" ]
+        [ "api", "users", (String.fromInt userId), "counts" ]
         []
 
 
 countListDecoder : Decoder (List Count)
 countListDecoder =
-    field "data" (Decode.list countDecoder)
+    field "counts" (Decode.list countDecoder)
 
 
 countDecoder : Decoder Count
