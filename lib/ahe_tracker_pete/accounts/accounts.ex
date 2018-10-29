@@ -7,6 +7,7 @@ defmodule AheTrackerPete.Accounts do
   alias AheTrackerPete.Repo
 
   alias AheTrackerPete.Accounts.User
+  alias AheTrackerPete.Eating.Count
 
   @doc """
   Returns the list of users.
@@ -100,5 +101,18 @@ defmodule AheTrackerPete.Accounts do
   """
   def change_user(%User{} = user) do
     User.changeset(user, %{})
+  end
+
+  @doc """
+  Returns counts for the given user.
+
+  ## Examples
+
+      iex> list_counts_for_user(user)
+      {:ok, [%Count{}, ...]}
+
+  """
+  def list_counts_for_user(%User{} = user) do
+    Repo.all(from(c in Count, where: c.user_id == ^user.id))
   end
 end

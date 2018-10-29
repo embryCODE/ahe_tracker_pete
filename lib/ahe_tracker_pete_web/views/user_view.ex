@@ -1,6 +1,7 @@
 defmodule AheTrackerPeteWeb.UserView do
   use AheTrackerPeteWeb, :view
   alias AheTrackerPeteWeb.UserView
+  alias AheTrackerPeteWeb.CountView
 
   def render("index.json", %{users: users}) do
     %{data: render_many(users, UserView, "user.json")}
@@ -17,6 +18,13 @@ defmodule AheTrackerPeteWeb.UserView do
       last_name: user.last_name,
       email: user.email,
       password: user.password
+    }
+  end
+
+  def render("user_with_counts.json", %{user: user, counts: counts}) do
+    %{
+      user_id: user.id,
+      counts: render_many(counts, CountView, "count.json")
     }
   end
 end

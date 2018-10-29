@@ -40,4 +40,11 @@ defmodule AheTrackerPeteWeb.UserController do
       send_resp(conn, :no_content, "")
     end
   end
+
+  def list_counts_for_user(conn, %{"id" => id}) do
+    user = Accounts.get_user!(id)
+    counts = Accounts.list_counts_for_user(user)
+
+    render(conn, "user_with_counts.json", user: user, counts: counts)
+  end
 end

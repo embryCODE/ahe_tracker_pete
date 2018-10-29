@@ -2,6 +2,7 @@ defmodule AheTrackerPete.AccountsTest do
   use AheTrackerPete.DataCase
 
   alias AheTrackerPete.Accounts
+  alias AheTrackerPete.Eating
 
   describe "users" do
     alias AheTrackerPete.Accounts.User
@@ -76,6 +77,43 @@ defmodule AheTrackerPete.AccountsTest do
     test "change_user/1 returns a user changeset" do
       user = user_fixture()
       assert %Ecto.Changeset{} = Accounts.change_user(user)
+    end
+
+    test "list_counts_for_user/1 returns an empty list if there are no counts" do
+      user = user_fixture()
+      counts = Accounts.list_counts_for_user(user)
+      assert [] == counts
+    end
+
+    test "list_counts_for_user/1 returns a list of counts if there are any" do
+      {:ok, vegetables} = Eating.create_food(%{name: "Vegetables", category: "Essential"})
+      {:ok, fruit} = Eating.create_food(%{name: "Fruit", category: "Essential"})
+
+      {:ok, user} =
+        Accounts.create_user(%{
+          first_name: "Testy",
+          last_name: "McTesterson",
+          email: "testy@example.com",
+          password: "password"
+        })
+
+      Eating.create_count(%{
+        user_id: user.id,
+        food_id: vegetables.id,
+        count: 1.5
+      })
+
+      Eating.create_count(%{
+        user_id: user.id,
+        food_id: fruit.id,
+        count: 2.5
+      })
+
+      counts = Accounts.list_counts_for_user(user)
+
+      assert Enum.count(counts) == 2
+      assert Enum.at(counts, 0).food_id == vegetables.id
+      assert Enum.at(counts, 1).food_id == fruit.id
     end
   end
 end
