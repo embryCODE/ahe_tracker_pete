@@ -28,7 +28,7 @@ main =
 
 
 type alias Model =
-    { user : User, foods : List Food, counts : List Count }
+    { userIdInput : String, user : User, foods : List Food, counts : List Count }
 
 
 type alias User =
@@ -55,7 +55,8 @@ type alias Count =
 
 
 initialModel =
-    { user = User "" "" "" 0
+    { userIdInput = ""
+    , user = User "" "" "" 0
     , foods =
         [ Food "" "" 0 ]
     , counts =
@@ -66,8 +67,13 @@ initialModel =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( initialModel
-    , Cmd.batch [ readUser "2", listFoods, listCountsForUser 2 ]
+    , listFoods
     )
+
+
+login : Int -> List (Cmd Msg)
+login userId =
+    [ readUser userId, listCountsForUser userId ]
 
 
 
@@ -75,7 +81,9 @@ init _ =
 
 
 type Msg
-    = ReceiveUser (Result Http.Error User)
+    = UpdateUserIdInput String
+    | Login (Maybe Int)
+    | ReceiveUser (Result Http.Error User)
     | ReceiveFoods (Result Http.Error (List Food))
     | ReceiveCounts (Result Http.Error (List Count))
 
@@ -83,53 +91,54 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ReceiveUser result ->
-            let
-                _ =
-                    Debug.log "Debug ReceiveUser" result
-            in
-                case result of
-                    Ok user ->
-                        ( { model | user = user }
-                        , Cmd.none
-                        )
+        UpdateUserIdInput val ->
+            ( { model | userIdInput = val }, Cmd.none )
 
-                    Err _ ->
-                        ( model
-                        , Cmd.none
-                        )
+        Login val ->
+            case val of
+                Just userId ->
+                    ( model
+                    , Cmd.batch (login userId)
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        ReceiveUser result ->
+            case result of
+                Ok user ->
+                    ( { model | user = user }
+                    , Cmd.none
+                    )
+
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    )
 
         ReceiveFoods result ->
-            let
-                _ =
-                    Debug.log "Debug ReceiveFoods" result
-            in
-                case result of
-                    Ok foods ->
-                        ( { model | foods = foods }
-                        , Cmd.none
-                        )
+            case result of
+                Ok foods ->
+                    ( { model | foods = foods }
+                    , Cmd.none
+                    )
 
-                    Err _ ->
-                        ( model
-                        , Cmd.none
-                        )
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    )
 
         ReceiveCounts result ->
-            let
-                _ =
-                    Debug.log "Debug ReceiveCounts" result
-            in
-                case result of
-                    Ok counts ->
-                        ( { model | counts = counts }
-                        , Cmd.none
-                        )
+            case result of
+                Ok counts ->
+                    ( { model | counts = counts }
+                    , Cmd.none
+                    )
 
-                    Err _ ->
-                        ( model
-                        , Cmd.none
-                        )
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    )
 
 
 
@@ -148,7 +157,13 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div []
-        [ div []
+        [ Html.form [ onSubmit (Login (String.toInt model.userIdInput)) ]
+            [ input
+                [ placeholder "Enter User ID", onInput (UpdateUserIdInput) ]
+                []
+            , button [] [ text "Login" ]
+            ]
+        , div []
             [ p [] [ text (model.user.first_name ++ " " ++ model.user.last_name) ]
             , p [] [ text model.user.email ]
             ]
@@ -322,15 +337,15 @@ sortByCategory ( category1, _ ) ( category2, _ ) =
 -- readUser
 
 
-readUser : String -> Cmd Msg
+readUser : Int -> Cmd Msg
 readUser userId =
     Http.send ReceiveUser (Http.get (toReadUserUrl userId) userDecoder)
 
 
-toReadUserUrl : String -> String
+toReadUserUrl : Int -> String
 toReadUserUrl userId =
     Url.crossOrigin "http://localhost:4000"
-        [ "api", "users", userId ]
+        [ "api", "users", (String.fromInt userId) ]
         []
 
 
