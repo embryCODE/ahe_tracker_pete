@@ -1,14 +1,13 @@
 module Main exposing (..)
 
+import Types exposing (..)
+import Comms exposing (..)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Http
-import Json.Decode as Decode exposing (..)
-import Url.Builder as Url
-import Debug
 import List exposing (foldl)
+import Debug
 
 
 -- MAIN
@@ -27,85 +26,50 @@ main =
 -- MODEL
 
 
-type alias Model =
-    { userIdInput : String, user : User, foods : List Food, counts : List Count }
-
-
-type alias User =
-    { first_name : String
-    , last_name : String
-    , email : String
-    , id : Int
-    }
-
-
-type alias Food =
-    { name : String
-    , category : String
-    , id : Int
-    }
-
-
-type alias Count =
-    { count : Float
-    , user_id : Int
-    , food_id : Int
-    , id : Int
-    }
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( initialModel, listFoods )
 
 
 initialModel =
-    { userIdInput = ""
-    , user = User "" "" "" 0
-    , foods =
-        [ Food "" "" 0 ]
-    , counts =
-        [ Count 0 0 0 0 ]
-    }
-
-
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( initialModel
-    , listFoods
-    )
-
-
-login : Int -> List (Cmd Msg)
-login userId =
-    [ readUser userId, listCountsForUser userId ]
+    Model "" (User "" "" "" 0) [ Food "" "" 0 ] [ Count 0 0 0 0 ] []
 
 
 
 -- UPDATE
 
 
-type Msg
-    = UpdateUserIdInput String
-    | Login (Maybe Int)
-    | ReceiveUser (Result Http.Error User)
-    | ReceiveFoods (Result Http.Error (List Food))
-    | ReceiveCounts (Result Http.Error (List Count))
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UpdateUserIdInput val ->
-            ( { model | userIdInput = val }, Cmd.none )
+        CountUpdated result ->
+            case result of
+                Ok _ ->
+                    ( model, (listCountsForUser model.user.id) )
 
-        Login val ->
-            case val of
-                Just userId ->
+                Err _ ->
                     ( model
-                    , Cmd.batch (login userId)
+                    , Cmd.none
+                    )
+
+        UpdateFoodCount args ->
+            ( model, (updateFoodCount args) )
+
+        UpdateUserIdInput value ->
+            ( { model | userIdInput = value }, Cmd.none )
+
+        Login value ->
+            case value of
+                Just userId ->
+                    ( { model | errors = (model.errors |> List.filter (\customError -> not (customError == LoggingIn))) }
+                    , Cmd.batch [ readUser userId, listCountsForUser userId ]
                     )
 
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( { model | errors = LoggingIn :: model.errors }, Cmd.none )
 
-        ReceiveUser result ->
-            case result of
+        ReceiveUser value ->
+            case value of
                 Ok user ->
                     ( { model | user = user }
                     , Cmd.none
@@ -116,8 +80,8 @@ update msg model =
                     , Cmd.none
                     )
 
-        ReceiveFoods result ->
-            case result of
+        ReceiveFoods value ->
+            case value of
                 Ok foods ->
                     ( { model | foods = foods }
                     , Cmd.none
@@ -128,8 +92,8 @@ update msg model =
                     , Cmd.none
                     )
 
-        ReceiveCounts result ->
-            case result of
+        ReceiveCountsForUser value ->
+            case value of
                 Ok counts ->
                     ( { model | counts = counts }
                     , Cmd.none
@@ -156,34 +120,62 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
+    let
+        categoryGroups =
+            formatFoods model.user model.foods model.counts
+    in
+        div []
+            [ Html.form [ onSubmit (Login (String.toInt model.userIdInput)) ]
+                [ input
+                    [ placeholder "Enter User ID", onInput (UpdateUserIdInput) ]
+                    []
+                , button [] [ text "Login" ]
+                ]
+            , div []
+                [ p [] [ text (model.user.first_name ++ " " ++ model.user.last_name) ]
+                , p [] [ text model.user.email ]
+                ]
+            , div []
+                [ div []
+                    (categoryGroups |> List.map (renderCategoryGroup model))
+                ]
+            , div [ class "strong" ]
+                [ div [] [ text "ERRORS:" ]
+                , ul []
+                    (model.errors |> List.map (\error -> li [] [ text (convertErrorToString LoggingIn) ]))
+                ]
+            ]
+
+
+convertErrorToString : CustomError -> String
+convertErrorToString customError =
+    case customError of
+        LoggingIn ->
+            "There was an error logging in"
+
+
+renderCategoryGroup : Model -> ( Category, List FoodCount ) -> Html Msg
+renderCategoryGroup model ( categoryName, foodCounts ) =
     div []
-        [ Html.form [ onSubmit (Login (String.toInt model.userIdInput)) ]
-            [ input
-                [ placeholder "Enter User ID", onInput (UpdateUserIdInput) ]
-                []
-            , button [] [ text "Login" ]
-            ]
-        , div []
-            [ p [] [ text (model.user.first_name ++ " " ++ model.user.last_name) ]
-            , p [] [ text model.user.email ]
-            ]
-        , div []
-            [ div []
-                (List.map
-                    (\( categoryName, foodsInCategory ) ->
-                        div []
-                            [ p [] [ text (convertCategoryToString categoryName) ]
-                            , ul []
-                                (List.map
-                                    (\food -> li [] [ text (food.name ++ " " ++ (String.fromFloat food.count)) ])
-                                    foodsInCategory
-                                )
-                            ]
-                    )
-                    (formatFoods model.user model.foods model.counts)
-                )
-            ]
+        [ p [] [ text (convertCategoryToString categoryName) ]
+        , ul []
+            (foodCounts |> List.map (renderFoodCount model))
         ]
+
+
+renderFoodCount : Model -> { food : Food, count : Count } -> Html Msg
+renderFoodCount model { food, count } =
+    li []
+        [ span [ onClick (handleCountInput model (FoodCount food count) (count.count - 0.5)) ] [ text "< " ]
+        , span [] [ text (String.fromFloat count.count) ]
+        , span [ onClick (handleCountInput model (FoodCount food count) (count.count + 0.5)) ] [ text " > " ]
+        , text food.name
+        ]
+
+
+handleCountInput : Model -> FoodCount -> Float -> Msg
+handleCountInput model { count, food } newCount =
+    UpdateFoodCount ( count, newCount )
 
 
 convertCategoryToString : Category -> String
@@ -197,22 +189,6 @@ convertCategoryToString category =
 
         Acceptable ->
             "Acceptable"
-
-
-type alias FoodCount =
-    { name : String
-    , count : Float
-    }
-
-
-type alias CategoryGroup =
-    ( Category, List FoodCount )
-
-
-type Category
-    = Essential
-    | Recommended
-    | Acceptable
 
 
 formatFoods : User -> List Food -> List Count -> List CategoryGroup
@@ -295,11 +271,11 @@ replaceFoodWithFoodCount user counts food =
         -- Return a FoodCount with food.name and the found count.count
         case foundCount of
             Just countThatWasFound ->
-                FoodCount food.name countThatWasFound.count
+                FoodCount food countThatWasFound
 
             -- Otherwise assume the count for that food is 0
             Nothing ->
-                FoodCount food.name 0
+                FoodCount food (Count 0 0 0 0)
 
 
 orderByCategory : List CategoryGroup -> List CategoryGroup
@@ -330,90 +306,3 @@ sortByCategory ( category1, _ ) ( category2, _ ) =
 
         _ ->
             EQ
-
-
-
--- HTTP
--- readUser
-
-
-readUser : Int -> Cmd Msg
-readUser userId =
-    Http.send ReceiveUser (Http.get (toReadUserUrl userId) userDecoder)
-
-
-toReadUserUrl : Int -> String
-toReadUserUrl userId =
-    Url.crossOrigin "http://localhost:4000"
-        [ "api", "users", (String.fromInt userId) ]
-        []
-
-
-userDecoder : Decoder User
-userDecoder =
-    field "data"
-        (map4 User
-            (at [ "first_name" ] string)
-            (at [ "last_name" ] string)
-            (at [ "email" ] string)
-            (at [ "id" ] int)
-        )
-
-
-
--- listFoods
-
-
-listFoods : Cmd Msg
-listFoods =
-    Http.send ReceiveFoods (Http.get (toReadFoodsUrl) foodListDecoder)
-
-
-toReadFoodsUrl : String
-toReadFoodsUrl =
-    Url.crossOrigin "http://localhost:4000"
-        [ "api", "foods" ]
-        []
-
-
-foodListDecoder : Decoder (List Food)
-foodListDecoder =
-    field "data" (Decode.list foodDecoder)
-
-
-foodDecoder : Decoder Food
-foodDecoder =
-    map3 Food
-        (at [ "name" ] string)
-        (at [ "category" ] string)
-        (at [ "id" ] int)
-
-
-
--- listCountsForUser
-
-
-listCountsForUser : Int -> Cmd Msg
-listCountsForUser userId =
-    Http.send ReceiveCounts (Http.get (toListCountsForUserUrl userId) countListDecoder)
-
-
-toListCountsForUserUrl : Int -> String
-toListCountsForUserUrl userId =
-    Url.crossOrigin "http://localhost:4000"
-        [ "api", "users", (String.fromInt userId), "counts" ]
-        []
-
-
-countListDecoder : Decoder (List Count)
-countListDecoder =
-    field "counts" (Decode.list countDecoder)
-
-
-countDecoder : Decoder Count
-countDecoder =
-    map4 Count
-        (at [ "count" ] float)
-        (at [ "user_id" ] int)
-        (at [ "food_id" ] int)
-        (at [ "id" ] int)
