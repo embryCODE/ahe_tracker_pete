@@ -10,7 +10,8 @@ defmodule AheTrackerPeteWeb.CountControllerTest do
   defp invalid_attrs(), do: create_attrs(nil)
 
   defp create_attrs(counts_count) do
-    {:ok, food} = Eating.create_food(%{name: "Vegetables", category: "Essential"})
+    {:ok, food} =
+      Eating.create_or_update_food(%{name: "Vegetables", category: "Essential", priority: 1}, 1)
 
     {:ok, user} =
       Accounts.create_user(%{

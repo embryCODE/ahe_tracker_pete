@@ -7,9 +7,9 @@ defmodule AheTrackerPete.EatingTest do
   describe "foods" do
     alias AheTrackerPete.Eating.Food
 
-    @valid_attrs %{category: "some category", name: "some name"}
-    @update_attrs %{category: "some updated category", name: "some updated name"}
-    @invalid_attrs %{category: nil, name: nil}
+    @valid_attrs %{category: "some category", name: "some name", priority: 1}
+    @update_attrs %{category: "some updated category", name: "some updated name", priority: 1}
+    @invalid_attrs %{category: nil, name: nil, priority: nil}
 
     def food_fixture(attrs \\ %{}) do
       {:ok, food} =
@@ -74,7 +74,8 @@ defmodule AheTrackerPete.EatingTest do
     defp invalid_attrs(), do: create_attrs(nil)
 
     defp create_attrs(counts_count) do
-      {:ok, food} = Eating.create_food(%{name: "Vegetables", category: "Essential"})
+      {:ok, food} =
+        Eating.create_or_update_food(%{name: "Vegetables", category: "Essential", priority: 1}, 1)
 
       {:ok, user} =
         Accounts.create_user(%{

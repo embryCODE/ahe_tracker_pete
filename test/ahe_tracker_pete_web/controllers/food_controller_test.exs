@@ -6,11 +6,13 @@ defmodule AheTrackerPeteWeb.FoodControllerTest do
 
   @create_attrs %{
     category: "some category",
-    name: "some name"
+    name: "some name",
+    priority: 1
   }
   @update_attrs %{
     category: "some updated category",
-    name: "some updated name"
+    name: "some updated name",
+    priority: 1
   }
   @invalid_attrs %{category: nil, name: nil}
 

@@ -7,6 +7,7 @@ defmodule AheTrackerPete.Eating do
   alias AheTrackerPete.Repo
 
   alias AheTrackerPete.Eating.Food
+  alias AheTrackerPete.Eating.Count
 
   @doc """
   Returns the list of foods.
@@ -74,6 +75,19 @@ defmodule AheTrackerPete.Eating do
   end
 
   @doc """
+  Create or update a food.
+
+  """
+  def create_or_update_food(food, id) do
+    case Repo.get(Food, id) do
+      nil -> %Food{id: id}
+      food -> food
+    end
+    |> Food.changeset(food)
+    |> Repo.insert_or_update()
+  end
+
+  @doc """
   Deletes a Food.
 
   ## Examples
@@ -101,8 +115,6 @@ defmodule AheTrackerPete.Eating do
   def change_food(%Food{} = food) do
     Food.changeset(food, %{})
   end
-
-  alias AheTrackerPete.Eating.Count
 
   @doc """
   Returns the list of counts.

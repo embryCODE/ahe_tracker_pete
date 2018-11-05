@@ -86,8 +86,10 @@ defmodule AheTrackerPete.AccountsTest do
     end
 
     test "list_counts_for_user/1 returns a list of counts if there are any" do
-      {:ok, vegetables} = Eating.create_food(%{name: "Vegetables", category: "Essential"})
-      {:ok, fruit} = Eating.create_food(%{name: "Fruit", category: "Essential"})
+      {:ok, vegetables} =
+        Eating.create_food(%{name: "Vegetables", category: "Essential", priority: 1})
+
+      {:ok, fruit} = Eating.create_food(%{name: "Fruit", category: "Essential", priority: 2})
 
       {:ok, user} =
         Accounts.create_user(%{
