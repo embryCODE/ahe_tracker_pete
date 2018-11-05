@@ -61,24 +61,25 @@ update msg model =
         Login value ->
             case value of
                 Just userId ->
-                    ( { model | errors = (model.errors |> List.filter (\customError -> not (customError == LoggingIn))) }
+                    ( { model | errors = (model.errors |> List.filter (\customError -> customError /= LoggingIn)) }
                     , Cmd.batch [ readUser userId, listCountsForUser userId ]
                     )
 
                 Nothing ->
-                    ( { model | errors = LoggingIn :: model.errors }, Cmd.none )
+                    ( { model | errors = LoggingIn :: model.errors, userIdInput = "" }, Cmd.none )
 
         ReceiveUser value ->
             case value of
                 Ok user ->
-                    ( { model | user = user }
+                    ( { model
+                        | user = user
+                        , errors = (model.errors |> List.filter (\customError -> customError /= LoggingIn))
+                      }
                     , Cmd.none
                     )
 
                 Err _ ->
-                    ( model
-                    , Cmd.none
-                    )
+                    ( { model | errors = LoggingIn :: model.errors, userIdInput = "" }, Cmd.none )
 
         ReceiveFoods value ->
             case value of
@@ -124,10 +125,10 @@ view model =
         categoryGroups =
             formatFoods model.user model.foods model.counts
     in
-        div []
+        div [ class "pa3" ]
             [ Html.form [ onSubmit (Login (String.toInt model.userIdInput)) ]
                 [ input
-                    [ placeholder "Enter User ID", onInput (UpdateUserIdInput) ]
+                    [ placeholder "Enter User ID", onInput (UpdateUserIdInput), value model.userIdInput ]
                     []
                 , button [] [ text "Login" ]
                 ]
@@ -166,9 +167,9 @@ renderCategoryGroup model ( categoryName, foodCounts ) =
 renderFoodCount : Model -> { food : Food, count : Count } -> Html Msg
 renderFoodCount model { food, count } =
     li []
-        [ span [ onClick (handleCountInput model (FoodCount food count) (count.count - 0.5)) ] [ text "< " ]
+        [ span [ class "pointer", onClick (handleCountInput model (FoodCount food count) (count.count - 0.5)) ] [ text "< " ]
         , span [] [ text (String.fromFloat count.count) ]
-        , span [ onClick (handleCountInput model (FoodCount food count) (count.count + 0.5)) ] [ text " > " ]
+        , span [ class "pointer", onClick (handleCountInput model (FoodCount food count) (count.count + 0.5)) ] [ text " > " ]
         , text food.name
         ]
 
