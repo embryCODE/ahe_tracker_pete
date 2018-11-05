@@ -98,10 +98,11 @@ foodListDecoder =
 
 foodDecoder : Decoder Food
 foodDecoder =
-    map3 Food
+    map4 Food
         (at [ "name" ] string)
         (at [ "category" ] string)
         (at [ "id" ] int)
+        (at [ "priority" ] int)
 
 
 

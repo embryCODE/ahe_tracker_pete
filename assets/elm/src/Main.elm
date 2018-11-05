@@ -32,7 +32,7 @@ init _ =
 
 
 initialModel =
-    Model "" (User "" "" "" 0) [ Food "" "" 0 ] [ Count 0 0 0 0 ] []
+    Model "" (User "" "" "" 0) [ Food "" "" 0 0 ] [ Count 0 0 0 0 ] []
 
 
 
@@ -160,8 +160,13 @@ renderCategoryGroup model ( categoryName, foodCounts ) =
     div []
         [ p [] [ text (convertCategoryToString categoryName) ]
         , ul []
-            (foodCounts |> List.map (renderFoodCount model))
+            (foodCounts |> List.sortWith compareFoodPriority |> List.map (renderFoodCount model))
         ]
+
+
+compareFoodPriority : FoodCount -> FoodCount -> Order
+compareFoodPriority foodCount1 foodCount2 =
+    compare foodCount1.food.priority foodCount2.food.priority
 
 
 renderFoodCount : Model -> { food : Food, count : Count } -> Html Msg

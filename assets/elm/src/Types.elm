@@ -24,6 +24,7 @@ type alias Food =
     { name : String
     , category : String
     , id : Int
+    , priority : Int
     }
 
 
