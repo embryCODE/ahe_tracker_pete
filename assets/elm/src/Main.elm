@@ -1,13 +1,15 @@
 module Main exposing (..)
 
-import Types exposing (..)
-import Comms exposing (..)
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
-import List exposing (foldl)
+import Html.Attributes as Attributes
+import Html.Events as Events
+import List
 import Debug
+import Http
+import User exposing (User, readUser)
+import Food exposing (Food, listFoods)
+import Count exposing (Count, listCountsForUser, updateFoodCount)
 
 
 -- MAIN
@@ -26,17 +28,45 @@ main =
 -- MODEL
 
 
+type alias Model =
+    { userIdInput : String
+    , user : User
+    , foods : List Food
+    , counts : List Count
+    , errors : List CustomError
+    }
+
+
+type CustomError
+    = LoggingIn
+
+
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( initialModel, listFoods )
+    ( emptyModel, (Http.send ReceiveFoods Food.listFoods) )
 
 
-initialModel =
-    Model "" (User "" "" "" 0) [ Food "" "" 0 0 ] [ Count 0 0 0 0 ] []
+emptyModel =
+    Model "" emptyUser [ Food "" "" 0 0 ] [ Count 0 0 0 0 ] []
+
+
+emptyUser =
+    (User "" "" "" 0)
 
 
 
 -- UPDATE
+
+
+type Msg
+    = CountUpdated (Result Http.Error Count)
+    | UpdateFoodCount ( Count, Float )
+    | UpdateUserIdInput String
+    | Login (Maybe Int)
+    | Logout
+    | ReceiveUser (Result Http.Error User)
+    | ReceiveFoods (Result Http.Error (List Food))
+    | ReceiveCountsForUser (Result Http.Error (List Count))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -45,7 +75,7 @@ update msg model =
         CountUpdated result ->
             case result of
                 Ok _ ->
-                    ( model, (listCountsForUser model.user.id) )
+                    ( model, (Http.send ReceiveCountsForUser (listCountsForUser model.user.id)) )
 
                 Err _ ->
                     ( model
@@ -53,7 +83,7 @@ update msg model =
                     )
 
         UpdateFoodCount args ->
-            ( model, (updateFoodCount args) )
+            ( model, (Http.send CountUpdated (updateFoodCount args)) )
 
         UpdateUserIdInput value ->
             ( { model | userIdInput = value }, Cmd.none )
@@ -62,11 +92,14 @@ update msg model =
             case value of
                 Just userId ->
                     ( { model | errors = (model.errors |> List.filter (\customError -> customError /= LoggingIn)) }
-                    , Cmd.batch [ readUser userId, listCountsForUser userId ]
+                    , Cmd.batch [ Http.send ReceiveUser (readUser userId), Http.send ReceiveCountsForUser (listCountsForUser userId) ]
                     )
 
                 Nothing ->
                     ( { model | errors = LoggingIn :: model.errors, userIdInput = "" }, Cmd.none )
+
+        Logout ->
+            ( { model | user = emptyUser, userIdInput = "" }, Cmd.none )
 
         ReceiveUser value ->
             case value of
@@ -119,19 +152,56 @@ subscriptions model =
 -- VIEW
 
 
+type alias CategoryGroup =
+    ( Category, List FoodCount )
+
+
+type alias FoodCount =
+    { food : Food
+    , count : Count
+    }
+
+
+type Category
+    = Essential
+    | Recommended
+    | Acceptable
+
+
 view : Model -> Html Msg
 view model =
+    div [ Attributes.class "pa3" ]
+        [ (if model.user.id == 0 then
+            renderLoginView model
+           else
+            renderMainView model
+          )
+        , div [ Attributes.class "strong", Attributes.class "mt3" ]
+            [ div [] [ text "ERRORS:" ]
+            , ul []
+                (model.errors |> List.map (\error -> li [] [ text (convertErrorToString LoggingIn) ]))
+            ]
+        ]
+
+
+renderLoginView : Model -> Html Msg
+renderLoginView model =
+    Html.form [ Events.onSubmit (Login (String.toInt model.userIdInput)) ]
+        [ input
+            [ Attributes.placeholder "Enter User ID", Events.onInput (UpdateUserIdInput), Attributes.value model.userIdInput ]
+            []
+        , button [] [ text "Login" ]
+        ]
+
+
+renderMainView : Model -> Html Msg
+renderMainView model =
     let
         categoryGroups =
             formatFoods model.user model.foods model.counts
     in
-        div [ class "pa3" ]
-            [ Html.form [ onSubmit (Login (String.toInt model.userIdInput)) ]
-                [ input
-                    [ placeholder "Enter User ID", onInput (UpdateUserIdInput), value model.userIdInput ]
-                    []
-                , button [] [ text "Login" ]
-                ]
+        div []
+            [ button [ Events.onClick Logout ] [ text "Logout" ]
             , div []
                 [ p [] [ text (model.user.first_name ++ " " ++ model.user.last_name) ]
                 , p [] [ text model.user.email ]
@@ -139,11 +209,6 @@ view model =
             , div []
                 [ div []
                     (categoryGroups |> List.map (renderCategoryGroup model))
-                ]
-            , div [ class "strong" ]
-                [ div [] [ text "ERRORS:" ]
-                , ul []
-                    (model.errors |> List.map (\error -> li [] [ text (convertErrorToString LoggingIn) ]))
                 ]
             ]
 
@@ -172,9 +237,9 @@ compareFoodPriority foodCount1 foodCount2 =
 renderFoodCount : Model -> { food : Food, count : Count } -> Html Msg
 renderFoodCount model { food, count } =
     li []
-        [ span [ class "pointer", onClick (handleCountInput model (FoodCount food count) (count.count - 0.5)) ] [ text "< " ]
+        [ span [ Attributes.class "pointer", Events.onClick (handleCountInput model (FoodCount food count) (count.count - 0.5)) ] [ text "< " ]
         , span [] [ text (String.fromFloat count.count) ]
-        , span [ class "pointer", onClick (handleCountInput model (FoodCount food count) (count.count + 0.5)) ] [ text " > " ]
+        , span [ Attributes.class "pointer", Events.onClick (handleCountInput model (FoodCount food count) (count.count + 0.5)) ] [ text " > " ]
         , text food.name
         ]
 
@@ -207,7 +272,7 @@ formatFoods user foodsFromApi countsFromApi =
 
 processFoodsByCategory : List Food -> List ( Category, List Food )
 processFoodsByCategory foods =
-    foldl processFood [] foods
+    List.foldl processFood [] foods
 
 
 processFood : Food -> List ( Category, List Food ) -> List ( Category, List Food )
