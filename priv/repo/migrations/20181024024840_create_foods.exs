@@ -5,8 +5,11 @@ defmodule AheTrackerPete.Repo.Migrations.CreateFoods do
     create table(:foods) do
       add(:name, :string)
       add(:category, :string)
+      add(:priority, :integer)
 
       timestamps()
     end
+
+    create(unique_index(:foods, [:priority]))
   end
 end

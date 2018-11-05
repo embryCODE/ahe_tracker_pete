@@ -5,6 +5,7 @@ defmodule AheTrackerPete.Eating.Food do
   schema "foods" do
     field(:category, :string)
     field(:name, :string)
+    field(:priority, :integer)
 
     timestamps()
 
@@ -14,7 +15,8 @@ defmodule AheTrackerPete.Eating.Food do
   @doc false
   def changeset(food, attrs) do
     food
-    |> cast(attrs, [:name, :category])
-    |> validate_required([:name, :category])
+    |> cast(attrs, [:name, :category, :priority])
+    |> unique_constraint(:priority)
+    |> validate_required([:name, :category, :priority])
   end
 end
