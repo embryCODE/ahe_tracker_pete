@@ -7,7 +7,10 @@ defmodule AheTrackerPete.Accounts do
   alias AheTrackerPete.Repo
 
   alias AheTrackerPete.Accounts.User
+
+  alias AheTrackerPete.Eating
   alias AheTrackerPete.Eating.Count
+  alias AheTrackerPete.Eating.Food
 
   @doc """
   Returns the list of users.
@@ -114,5 +117,21 @@ defmodule AheTrackerPete.Accounts do
   """
   def list_counts_for_user(%User{} = user) do
     Repo.all(from(c in Count, where: c.user_id == ^user.id))
+  end
+
+  @doc """
+  Creates a count of zero for each food and this user.
+  """
+  def init_counts_for_user(%User{} = user) do
+    foods = Eating.list_foods()
+
+    foods
+    |> Enum.each(fn food ->
+      Eating.create_count(%{
+        user_id: user.id,
+        food_id: food.id,
+        count: 0
+      })
+    end)
   end
 end
