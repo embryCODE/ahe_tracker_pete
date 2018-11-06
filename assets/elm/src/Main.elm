@@ -7,9 +7,33 @@ import Html.Events as Events
 import List
 import Debug
 import Http
-import User exposing (User, readUser)
-import Food exposing (Food, listFoods)
-import Count exposing (Count, listCountsForUser, updateFoodCount)
+import User exposing (User)
+import Food exposing (Food)
+import Count exposing (Count)
+
+
+-- TYPES
+
+
+type alias CategoryGroup =
+    ( Category, List FoodCount )
+
+
+type Category
+    = Essential
+    | Recommended
+    | Acceptable
+
+
+type alias FoodCount =
+    { food : Food
+    , count : Count
+    }
+
+
+type CustomError
+    = LoggingIn
+
 
 
 -- MAIN
@@ -37,21 +61,17 @@ type alias Model =
     }
 
 
-type CustomError
-    = LoggingIn
-
-
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( emptyModel, (Http.send ReceiveFoods Food.listFoods) )
+    ( emptyModel, (Http.send ReceiveFoods Food.listFoodsRequest) )
 
 
 emptyModel =
-    Model "" emptyUser [ Food "" "" 0 0 ] [ Count 0 0 0 0 ] []
+    Model "" emptyUser [ Food 0 "" "" 0 ] [ Count 0 0 0 0 ] []
 
 
 emptyUser =
-    (User "" "" "" 0)
+    (User 0 "" "" "")
 
 
 
@@ -59,11 +79,11 @@ emptyUser =
 
 
 type Msg
-    = CountUpdated (Result Http.Error Count)
-    | UpdateFoodCount ( Count, Float )
-    | UpdateUserIdInput String
-    | Login (Maybe Int)
+    = Login (Maybe Int)
     | Logout
+    | UpdateUserIdInput String
+    | UpdateFoodCount ( Count, Float )
+    | CountUpdated (Result Http.Error Count)
     | ReceiveUser (Result Http.Error User)
     | ReceiveFoods (Result Http.Error (List Food))
     | ReceiveCountsForUser (Result Http.Error (List Count))
@@ -75,7 +95,7 @@ update msg model =
         CountUpdated result ->
             case result of
                 Ok _ ->
-                    ( model, (Http.send ReceiveCountsForUser (listCountsForUser model.user.id)) )
+                    ( model, (Http.send ReceiveCountsForUser (Count.listCountsForUserRequest model.user.id)) )
 
                 Err _ ->
                     ( model
@@ -83,7 +103,7 @@ update msg model =
                     )
 
         UpdateFoodCount args ->
-            ( model, (Http.send CountUpdated (updateFoodCount args)) )
+            ( model, (Http.send CountUpdated (Count.updateCountRequest args)) )
 
         UpdateUserIdInput value ->
             ( { model | userIdInput = value }, Cmd.none )
@@ -92,7 +112,10 @@ update msg model =
             case value of
                 Just userId ->
                     ( { model | errors = (model.errors |> List.filter (\customError -> customError /= LoggingIn)) }
-                    , Cmd.batch [ Http.send ReceiveUser (readUser userId), Http.send ReceiveCountsForUser (listCountsForUser userId) ]
+                    , Cmd.batch
+                        [ Http.send ReceiveUser (User.readUserRequest userId)
+                        , Http.send ReceiveCountsForUser (Count.listCountsForUserRequest userId)
+                        ]
                     )
 
                 Nothing ->
@@ -152,22 +175,6 @@ subscriptions model =
 -- VIEW
 
 
-type alias CategoryGroup =
-    ( Category, List FoodCount )
-
-
-type alias FoodCount =
-    { food : Food
-    , count : Count
-    }
-
-
-type Category
-    = Essential
-    | Recommended
-    | Acceptable
-
-
 view : Model -> Html Msg
 view model =
     div [ Attributes.class "pa3" ]
@@ -179,7 +186,9 @@ view model =
         , div [ Attributes.class "strong", Attributes.class "mt3" ]
             [ div [] [ text "ERRORS:" ]
             , ul []
-                (model.errors |> List.map (\error -> li [] [ text (convertErrorToString LoggingIn) ]))
+                (model.errors
+                    |> List.map (\error -> li [] [ text (convertErrorToString LoggingIn) ])
+                )
             ]
         ]
 
@@ -188,7 +197,10 @@ renderLoginView : Model -> Html Msg
 renderLoginView model =
     Html.form [ Events.onSubmit (Login (String.toInt model.userIdInput)) ]
         [ input
-            [ Attributes.placeholder "Enter User ID", Events.onInput (UpdateUserIdInput), Attributes.value model.userIdInput ]
+            [ Attributes.placeholder "Enter User ID"
+            , Events.onInput (UpdateUserIdInput)
+            , Attributes.value model.userIdInput
+            ]
             []
         , button [] [ text "Login" ]
         ]
@@ -225,7 +237,10 @@ renderCategoryGroup model ( categoryName, foodCounts ) =
     div []
         [ p [] [ text (convertCategoryToString categoryName) ]
         , ul []
-            (foodCounts |> List.sortWith compareFoodPriority |> List.map (renderFoodCount model))
+            (foodCounts
+                |> List.sortWith compareFoodPriority
+                |> List.map (renderFoodCount model)
+            )
         ]
 
 
@@ -237,9 +252,17 @@ compareFoodPriority foodCount1 foodCount2 =
 renderFoodCount : Model -> { food : Food, count : Count } -> Html Msg
 renderFoodCount model { food, count } =
     li []
-        [ span [ Attributes.class "pointer", Events.onClick (handleCountInput model (FoodCount food count) (count.count - 0.5)) ] [ text "< " ]
+        [ span
+            [ Attributes.class "pointer"
+            , Events.onClick (handleCountInput model (FoodCount food count) (count.count - 0.5))
+            ]
+            [ text "< " ]
         , span [] [ text (String.fromFloat count.count) ]
-        , span [ Attributes.class "pointer", Events.onClick (handleCountInput model (FoodCount food count) (count.count + 0.5)) ] [ text " > " ]
+        , span
+            [ Attributes.class "pointer"
+            , Events.onClick (handleCountInput model (FoodCount food count) (count.count + 0.5))
+            ]
+            [ text " > " ]
         , text food.name
         ]
 
@@ -283,7 +306,10 @@ processFood food acc =
             (convertStringToCategory food.category)
     in
         -- if the acc has a tuple with that Category,
-        if acc |> List.any (\catTupleToTest -> (Tuple.first catTupleToTest) == currentFoodCategory) then
+        if
+            acc
+                |> List.any (\catTupleToTest -> (Tuple.first catTupleToTest) == currentFoodCategory)
+        then
             -- add this food to the list of foods in that tuple
             acc
                 |> List.map

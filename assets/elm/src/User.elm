@@ -1,4 +1,4 @@
-module User exposing (User, readUser)
+module User exposing (User, readUserRequest)
 
 import Http
 import Json.Decode as D
@@ -7,20 +7,20 @@ import Url.Builder as Url
 
 
 type alias User =
-    { first_name : String
+    { id : Int
+    , first_name : String
     , last_name : String
     , email : String
-    , id : Int
     }
 
 
 
--- readUser
+-- READ USER
 
 
-readUser : Int -> Http.Request User
-readUser userId =
-    Http.get (toReadUserUrl userId) userDecoder
+readUserRequest : Int -> Http.Request User
+readUserRequest userId =
+    Http.get (toReadUserUrl userId) decode
 
 
 toReadUserUrl : Int -> String
@@ -30,12 +30,16 @@ toReadUserUrl userId =
         []
 
 
-userDecoder : D.Decoder User
-userDecoder =
+
+-- JSON
+
+
+decode : D.Decoder User
+decode =
     D.field "data"
         (D.map4 User
+            (D.at [ "id" ] D.int)
             (D.at [ "first_name" ] D.string)
             (D.at [ "last_name" ] D.string)
             (D.at [ "email" ] D.string)
-            (D.at [ "id" ] D.int)
         )

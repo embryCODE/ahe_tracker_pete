@@ -1,4 +1,4 @@
-module Count exposing (Count, listCountsForUser, updateFoodCount)
+module Count exposing (Count, listCountsForUserRequest, updateCountRequest)
 
 import Http
 import Json.Decode as D
@@ -7,20 +7,20 @@ import Url.Builder as Url
 
 
 type alias Count =
-    { count : Float
+    { id : Int
     , user_id : Int
     , food_id : Int
-    , id : Int
+    , count : Float
     }
 
 
 
--- updateFoodCount
+-- UPDATE COUNT
 
 
-updateFoodCount : ( Count, Float ) -> Http.Request Count
-updateFoodCount args =
-    put (toUpdateFoodCountUrl args) (Http.jsonBody (updateCountBody args))
+updateCountRequest : ( Count, Float ) -> Http.Request Count
+updateCountRequest args =
+    put (toUpdateFoodCountUrl args) (Http.jsonBody (encode args))
 
 
 put : String -> Http.Body -> Http.Request Count
@@ -36,19 +36,6 @@ put url body =
         }
 
 
-updateCountBody : ( Count, Float ) -> E.Value
-updateCountBody ( origCount, newCount ) =
-    E.object
-        [ ( "count"
-          , E.object
-                [ ( "count", E.float newCount )
-                , ( "food_id", E.int origCount.food_id )
-                , ( "user_id", E.int origCount.user_id )
-                ]
-          )
-        ]
-
-
 toUpdateFoodCountUrl : ( Count, Float ) -> String
 toUpdateFoodCountUrl ( count, _ ) =
     Url.crossOrigin "http://localhost:4000"
@@ -57,11 +44,11 @@ toUpdateFoodCountUrl ( count, _ ) =
 
 
 
--- listCountsForUser
+-- LIST COUNTS FOR USER
 
 
-listCountsForUser : Int -> Http.Request (List Count)
-listCountsForUser userId =
+listCountsForUserRequest : Int -> Http.Request (List Count)
+listCountsForUserRequest userId =
     Http.get (toListCountsForUserUrl userId) (D.field "counts" (D.list decode))
 
 
@@ -72,10 +59,27 @@ toListCountsForUserUrl userId =
         []
 
 
+
+-- JSON
+
+
 decode : D.Decoder Count
 decode =
     D.map4 Count
-        (D.at [ "count" ] D.float)
+        (D.at [ "id" ] D.int)
         (D.at [ "user_id" ] D.int)
         (D.at [ "food_id" ] D.int)
-        (D.at [ "id" ] D.int)
+        (D.at [ "count" ] D.float)
+
+
+encode : ( Count, Float ) -> E.Value
+encode ( origCount, newCount ) =
+    E.object
+        [ ( "count"
+          , E.object
+                [ ( "count", E.float newCount )
+                , ( "food_id", E.int origCount.food_id )
+                , ( "user_id", E.int origCount.user_id )
+                ]
+          )
+        ]
