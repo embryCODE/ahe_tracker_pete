@@ -4,8 +4,8 @@ defmodule AheTrackerPete.Repo.Migrations.CreateFoods do
   def change do
     create table(:foods) do
       add(:name, :string)
-      add(:category, :string)
       add(:priority, :integer)
+      add(:category_id, references(:categories))
 
       timestamps()
     end

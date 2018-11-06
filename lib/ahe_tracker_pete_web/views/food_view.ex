@@ -11,6 +11,6 @@ defmodule AheTrackerPeteWeb.FoodView do
   end
 
   def render("food.json", %{food: food}) do
-    %{id: food.id, name: food.name, category: food.category, priority: food.priority}
+    %{id: food.id, name: food.name, category_id: food.category_id, priority: food.priority}
   end
 end

@@ -28,5 +28,6 @@ defmodule AheTrackerPeteWeb.Router do
 
     resources("/foods", FoodController, except: [:new, :edit])
     resources("/counts", CountController, except: [:new, :edit])
+    resources("/categories", CategoryController, except: [:new, :edit])
   end
 end
