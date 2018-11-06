@@ -8,6 +8,7 @@ import List
 import Debug
 import Http
 import User exposing (User)
+import Category exposing (Category)
 import Food exposing (Food)
 import Count exposing (Count)
 
@@ -19,20 +20,12 @@ type alias CategoryGroup =
     ( Category, List FoodCount )
 
 
-type Category
-    = Essential
-    | Recommended
-    | Acceptable
-
-
 type alias FoodCount =
-    { food : Food
-    , count : Count
-    }
+    ( Food, Maybe Count )
 
 
-type CustomError
-    = LoggingIn
+type Error
+    = LoginError String
 
 
 
@@ -55,19 +48,27 @@ main =
 type alias Model =
     { userIdInput : String
     , user : User
+    , categories : List Category
     , foods : List Food
     , counts : List Count
-    , errors : List CustomError
+    , errors : List Error
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( emptyModel, (Http.send ReceiveFoods Food.listFoodsRequest) )
+    ( emptyModel
+    , Cmd.batch
+        [ Http.send ReceiveFoods Food.listFoodsRequest
+        , Http.send ReceiveCategories Category.listCategoriesRequest
+        , Http.send ReceiveUser (User.readUserRequest 2)
+        , Http.send ReceiveCountsForUser (Count.listCountsForUserRequest 2)
+        ]
+    )
 
 
 emptyModel =
-    Model "" emptyUser [ Food 0 "" "" 0 ] [ Count 0 0 0 0 ] []
+    Model "" emptyUser [ Category 0 "" 0 ] [ Food 0 "" 0 0 ] [ Count 0 0 0 0 ] []
 
 
 emptyUser =
@@ -86,6 +87,7 @@ type Msg
     | CountUpdated (Result Http.Error Count)
     | ReceiveUser (Result Http.Error User)
     | ReceiveFoods (Result Http.Error (List Food))
+    | ReceiveCategories (Result Http.Error (List Category))
     | ReceiveCountsForUser (Result Http.Error (List Count))
 
 
@@ -111,7 +113,7 @@ update msg model =
         Login value ->
             case value of
                 Just userId ->
-                    ( { model | errors = (model.errors |> List.filter (\customError -> customError /= LoggingIn)) }
+                    ( { model | errors = (model.errors |> List.filter (\error -> not (isLoginError error))) }
                     , Cmd.batch
                         [ Http.send ReceiveUser (User.readUserRequest userId)
                         , Http.send ReceiveCountsForUser (Count.listCountsForUserRequest userId)
@@ -119,7 +121,7 @@ update msg model =
                     )
 
                 Nothing ->
-                    ( { model | errors = LoggingIn :: model.errors, userIdInput = "" }, Cmd.none )
+                    ( { model | errors = LoginError "Invalid user ID" :: model.errors, userIdInput = "" }, Cmd.none )
 
         Logout ->
             ( { model | user = emptyUser, userIdInput = "" }, Cmd.none )
@@ -129,13 +131,25 @@ update msg model =
                 Ok user ->
                     ( { model
                         | user = user
-                        , errors = (model.errors |> List.filter (\customError -> customError /= LoggingIn))
+                        , errors = (model.errors |> List.filter (\error -> not (isLoginError error)))
                       }
                     , Cmd.none
                     )
 
                 Err _ ->
-                    ( { model | errors = LoggingIn :: model.errors, userIdInput = "" }, Cmd.none )
+                    ( { model | errors = LoginError "User not found" :: model.errors, userIdInput = "" }, Cmd.none )
+
+        ReceiveCategories value ->
+            case value of
+                Ok categories ->
+                    ( { model | categories = categories }
+                    , Cmd.none
+                    )
+
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    )
 
         ReceiveFoods value ->
             case value of
@@ -162,6 +176,13 @@ update msg model =
                     )
 
 
+isLoginError : Error -> Bool
+isLoginError error =
+    case error of
+        LoginError _ ->
+            True
+
+
 
 -- SUBSCRIPTIONS
 
@@ -178,19 +199,26 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div [ Attributes.class "pa3" ]
-        [ (if model.user.id == 0 then
-            renderLoginView model
-           else
-            renderMainView model
-          )
-        , div [ Attributes.class "strong", Attributes.class "mt3" ]
-            [ div [] [ text "ERRORS:" ]
-            , ul []
-                (model.errors
-                    |> List.map (\error -> li [] [ text (convertErrorToString LoggingIn) ])
-                )
-            ]
-        ]
+        ([ (if model.user.id == 0 then
+                renderLoginView model
+            else
+                renderMainView model
+           )
+         ]
+            ++ if List.length model.errors > 0 then
+                [ renderErrorView model ]
+               else
+                []
+        )
+
+
+renderErrorView : Model -> Html Msg
+renderErrorView model =
+    div [ Attributes.class "red" ]
+        (List.map
+            (\error -> p [] [ text (convertErrorToString error) ])
+            model.errors
+        )
 
 
 renderLoginView : Model -> Html Msg
@@ -210,7 +238,7 @@ renderMainView : Model -> Html Msg
 renderMainView model =
     let
         categoryGroups =
-            formatFoods model.user model.foods model.counts
+            createCategoryGroups model.categories model.foods model.counts
     in
         div []
             [ button [ Events.onClick Logout ] [ text "Logout" ]
@@ -225,181 +253,62 @@ renderMainView model =
             ]
 
 
-convertErrorToString : CustomError -> String
-convertErrorToString customError =
-    case customError of
-        LoggingIn ->
-            "There was an error logging in"
+convertErrorToString : Error -> String
+convertErrorToString error =
+    case error of
+        LoginError errorMessage ->
+            errorMessage
 
 
 renderCategoryGroup : Model -> ( Category, List FoodCount ) -> Html Msg
-renderCategoryGroup model ( categoryName, foodCounts ) =
+renderCategoryGroup model ( category, foodCounts ) =
     div []
-        [ p [] [ text (convertCategoryToString categoryName) ]
+        [ p [] [ text category.name ]
         , ul []
             (foodCounts
-                |> List.sortWith compareFoodPriority
                 |> List.map (renderFoodCount model)
             )
         ]
 
 
-compareFoodPriority : FoodCount -> FoodCount -> Order
-compareFoodPriority foodCount1 foodCount2 =
-    compare foodCount1.food.priority foodCount2.food.priority
+renderFoodCount : Model -> FoodCount -> Html Msg
+renderFoodCount model ( food, maybeCount ) =
+    case maybeCount of
+        Just count ->
+            li []
+                [ span
+                    [ Attributes.class "pointer"
+                    , Events.onClick (UpdateFoodCount ( count, (count.count - 0.5) ))
+                    ]
+                    [ text "< " ]
+                , span [] [ text (String.fromFloat count.count) ]
+                , span
+                    [ Attributes.class "pointer"
+                    , Events.onClick (UpdateFoodCount ( count, (count.count + 0.5) ))
+                    ]
+                    [ text " > " ]
+                , text food.name
+                ]
+
+        Nothing ->
+            li [] [ text ("Database error with " ++ food.name) ]
 
 
-renderFoodCount : Model -> { food : Food, count : Count } -> Html Msg
-renderFoodCount model { food, count } =
-    li []
-        [ span
-            [ Attributes.class "pointer"
-            , Events.onClick (handleCountInput model (FoodCount food count) (count.count - 0.5))
-            ]
-            [ text "< " ]
-        , span [] [ text (String.fromFloat count.count) ]
-        , span
-            [ Attributes.class "pointer"
-            , Events.onClick (handleCountInput model (FoodCount food count) (count.count + 0.5))
-            ]
-            [ text " > " ]
-        , text food.name
-        ]
+createCategoryGroups : List Category -> List Food -> List Count -> List CategoryGroup
+createCategoryGroups categories foods counts =
+    categories
+        |> List.sortWith (\cat1 cat2 -> (compare cat1.priority cat2.priority))
+        |> List.map (\category -> ( category, createListOfFoodCounts category foods counts ))
 
 
-handleCountInput : Model -> FoodCount -> Float -> Msg
-handleCountInput model { count, food } newCount =
-    UpdateFoodCount ( count, newCount )
+createListOfFoodCounts : Category -> List Food -> List Count -> List FoodCount
+createListOfFoodCounts category foods counts =
+    foods
+        |> List.filter (\food -> food.category_id == category.id)
+        |> List.sortWith (\food1 food2 -> (compare food1.priority food2.priority))
+        |> List.map (\food -> ( food, findMatchingCount food counts ))
 
 
-convertCategoryToString : Category -> String
-convertCategoryToString category =
-    case category of
-        Essential ->
-            "Essential"
-
-        Recommended ->
-            "Recommended"
-
-        Acceptable ->
-            "Acceptable"
-
-
-formatFoods : User -> List Food -> List Count -> List CategoryGroup
-formatFoods user foodsFromApi countsFromApi =
-    foodsFromApi
-        |> processFoodsByCategory
-        |> addCountsToFoodsByCategory user countsFromApi
-        |> orderByCategory
-
-
-processFoodsByCategory : List Food -> List ( Category, List Food )
-processFoodsByCategory foods =
-    List.foldl processFood [] foods
-
-
-processFood : Food -> List ( Category, List Food ) -> List ( Category, List Food )
-processFood food acc =
-    -- look at food.category, convert to Category type
-    let
-        currentFoodCategory =
-            (convertStringToCategory food.category)
-    in
-        -- if the acc has a tuple with that Category,
-        if
-            acc
-                |> List.any (\catTupleToTest -> (Tuple.first catTupleToTest) == currentFoodCategory)
-        then
-            -- add this food to the list of foods in that tuple
-            acc
-                |> List.map
-                    (\( cat, foodListToAddTo ) ->
-                        if cat == currentFoodCategory then
-                            ( cat, food :: foodListToAddTo )
-                        else
-                            ( cat, foodListToAddTo )
-                    )
-        else
-            -- otherwise, add that tuple to the list and plug this food into the list of foods in that tuple
-            ( currentFoodCategory, [ food ] ) :: acc
-
-
-convertStringToCategory : String -> Category
-convertStringToCategory string =
-    case string of
-        "Essential" ->
-            Essential
-
-        "Recommended" ->
-            Recommended
-
-        "Acceptable" ->
-            Acceptable
-
-        _ ->
-            Essential
-
-
-addCountsToFoodsByCategory : User -> List Count -> List ( Category, List Food ) -> List CategoryGroup
-addCountsToFoodsByCategory user counts list =
-    list
-        -- For each tuple in the list
-        |> List.map
-            (\( category, foodList ) ->
-                -- Look at each food in the second item of the tuple and replace it with a FoodCount
-                ( category, (List.map (\food -> replaceFoodWithFoodCount user counts food) foodList) )
-            )
-
-
-replaceFoodWithFoodCount : User -> List Count -> Food -> FoodCount
-replaceFoodWithFoodCount user counts food =
-    -- Look at every member of the list of counts
-    let
-        foundCount =
-            List.head
-                (List.filter
-                    (\count ->
-                        -- If count.food_id === food.id and count.user_id === user.id
-                        (count.food_id == food.id) && (count.user_id == user.id)
-                    )
-                    counts
-                )
-    in
-        -- Return a FoodCount with food.name and the found count.count
-        case foundCount of
-            Just countThatWasFound ->
-                FoodCount food countThatWasFound
-
-            -- Otherwise assume the count for that food is 0
-            Nothing ->
-                FoodCount food (Count 0 0 0 0)
-
-
-orderByCategory : List CategoryGroup -> List CategoryGroup
-orderByCategory listToOrder =
-    listToOrder |> List.sortWith sortByCategory
-
-
-sortByCategory : CategoryGroup -> CategoryGroup -> Order
-sortByCategory ( category1, _ ) ( category2, _ ) =
-    case ( category1, category2 ) of
-        ( Essential, Recommended ) ->
-            LT
-
-        ( Essential, Acceptable ) ->
-            LT
-
-        ( Recommended, Acceptable ) ->
-            LT
-
-        ( Recommended, Essential ) ->
-            GT
-
-        ( Acceptable, Essential ) ->
-            GT
-
-        ( Acceptable, Recommended ) ->
-            GT
-
-        _ ->
-            EQ
+findMatchingCount : Food -> List Count -> Maybe Count
+findMatchingCount food counts =
+    List.head (List.filter (\count -> count.food_id == food.id) counts)

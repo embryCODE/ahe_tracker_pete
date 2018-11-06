@@ -9,7 +9,7 @@ import Url.Builder as Url
 type alias Food =
     { id : Int
     , name : String
-    , category : String
+    , category_id : Int
     , priority : Int
     }
 
@@ -37,5 +37,5 @@ decode =
     D.map4 Food
         (D.at [ "id" ] D.int)
         (D.at [ "name" ] D.string)
-        (D.at [ "category" ] D.string)
+        (D.at [ "category_id" ] D.int)
         (D.at [ "priority" ] D.int)
