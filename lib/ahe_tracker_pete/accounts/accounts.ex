@@ -10,7 +10,6 @@ defmodule AheTrackerPete.Accounts do
 
   alias AheTrackerPete.Eating
   alias AheTrackerPete.Eating.Count
-  alias AheTrackerPete.Eating.Food
 
   @doc """
   Returns the list of users.

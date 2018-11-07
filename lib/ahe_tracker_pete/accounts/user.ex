@@ -17,6 +17,7 @@ defmodule AheTrackerPete.Accounts.User do
   def changeset(user, attrs) do
     user
     |> cast(attrs, [:first_name, :last_name, :email, :password])
+    |> unique_constraint(:email)
     |> validate_required([:first_name, :last_name, :email, :password])
   end
 end

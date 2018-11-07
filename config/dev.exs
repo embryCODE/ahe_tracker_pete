@@ -68,8 +68,8 @@ config :phoenix, :plug_init_mode, :runtime
 
 # Configure your database
 config :ahe_tracker_pete, AheTrackerPete.Repo,
-  username: "kit7265",
-  password: "",
+  username: "postgres",
+  password: "postgres",
   database: "ahe_tracker_pete_dev",
   hostname: "localhost",
   pool_size: 10
