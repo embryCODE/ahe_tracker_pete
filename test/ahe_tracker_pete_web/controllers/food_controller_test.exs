@@ -4,20 +4,24 @@ defmodule AheTrackerPeteWeb.FoodControllerTest do
   alias AheTrackerPete.Eating
   alias AheTrackerPete.Eating.Food
 
-  @create_attrs %{
-    category: "some category",
-    name: "some name",
-    priority: 1
-  }
-  @update_attrs %{
-    category: "some updated category",
-    name: "some updated name",
-    priority: 1
-  }
-  @invalid_attrs %{category: nil, name: nil}
+  defp valid_food_attrs() do
+    Eating.create_or_update_category(%{name: "Fake Category 1", priority: 1}, 1)
+
+    %{category_id: 1, name: "some name", priority: 1}
+  end
+
+  defp update_food_attrs() do
+    Eating.create_or_update_category(%{name: "Fake Category 2", priority: 2}, 2)
+
+    %{category_id: 2, name: "some updated name", priority: 2}
+  end
+
+  defp invalid_food_attrs() do
+    %{category: nil, name: nil}
+  end
 
   def fixture(:food) do
-    {:ok, food} = Eating.create_food(@create_attrs)
+    {:ok, food} = Eating.create_food(valid_food_attrs())
     food
   end
 
@@ -34,20 +38,20 @@ defmodule AheTrackerPeteWeb.FoodControllerTest do
 
   describe "create food" do
     test "renders food when data is valid", %{conn: conn} do
-      conn = post(conn, Routes.food_path(conn, :create), food: @create_attrs)
+      conn = post(conn, Routes.food_path(conn, :create), food: valid_food_attrs())
       assert %{"id" => id} = json_response(conn, 201)["data"]
 
       conn = get(conn, Routes.food_path(conn, :show, id))
 
       assert %{
                "id" => id,
-               "category" => "some category",
+               "category_id" => 1,
                "name" => "some name"
              } = json_response(conn, 200)["data"]
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
-      conn = post(conn, Routes.food_path(conn, :create), food: @invalid_attrs)
+      conn = post(conn, Routes.food_path(conn, :create), food: invalid_food_attrs())
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
@@ -56,20 +60,20 @@ defmodule AheTrackerPeteWeb.FoodControllerTest do
     setup [:create_food]
 
     test "renders food when data is valid", %{conn: conn, food: %Food{id: id} = food} do
-      conn = put(conn, Routes.food_path(conn, :update, food), food: @update_attrs)
+      conn = put(conn, Routes.food_path(conn, :update, food), food: update_food_attrs())
       assert %{"id" => ^id} = json_response(conn, 200)["data"]
 
       conn = get(conn, Routes.food_path(conn, :show, id))
 
       assert %{
                "id" => id,
-               "category" => "some updated category",
+               "category_id" => 2,
                "name" => "some updated name"
              } = json_response(conn, 200)["data"]
     end
 
     test "renders errors when data is invalid", %{conn: conn, food: food} do
-      conn = put(conn, Routes.food_path(conn, :update, food), food: @invalid_attrs)
+      conn = put(conn, Routes.food_path(conn, :update, food), food: invalid_food_attrs())
       assert json_response(conn, 422)["errors"] != %{}
     end
   end

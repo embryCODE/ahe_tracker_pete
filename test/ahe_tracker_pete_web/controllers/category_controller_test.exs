@@ -4,18 +4,18 @@ defmodule AheTrackerPeteWeb.CategoryControllerTest do
   alias AheTrackerPete.Eating
   alias AheTrackerPete.Eating.Category
 
-  @create_attrs %{
+  @create_category_attrs %{
     name: "some name",
     priority: 42
   }
-  @update_attrs %{
+  @update_category_attrs %{
     name: "some updated name",
     priority: 43
   }
-  @invalid_attrs %{name: nil, priority: nil}
+  @invalid_category_attrs %{name: nil, priority: nil}
 
   def fixture(:category) do
-    {:ok, category} = Eating.create_category(@create_attrs)
+    {:ok, category} = Eating.create_category(@create_category_attrs)
     category
   end
 
@@ -32,7 +32,7 @@ defmodule AheTrackerPeteWeb.CategoryControllerTest do
 
   describe "create category" do
     test "renders category when data is valid", %{conn: conn} do
-      conn = post(conn, Routes.category_path(conn, :create), category: @create_attrs)
+      conn = post(conn, Routes.category_path(conn, :create), category: @create_category_attrs)
       assert %{"id" => id} = json_response(conn, 201)["data"]
 
       conn = get(conn, Routes.category_path(conn, :show, id))
@@ -45,7 +45,7 @@ defmodule AheTrackerPeteWeb.CategoryControllerTest do
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
-      conn = post(conn, Routes.category_path(conn, :create), category: @invalid_attrs)
+      conn = post(conn, Routes.category_path(conn, :create), category: @invalid_category_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
@@ -57,7 +57,9 @@ defmodule AheTrackerPeteWeb.CategoryControllerTest do
       conn: conn,
       category: %Category{id: id} = category
     } do
-      conn = put(conn, Routes.category_path(conn, :update, category), category: @update_attrs)
+      conn =
+        put(conn, Routes.category_path(conn, :update, category), category: @update_category_attrs)
+
       assert %{"id" => ^id} = json_response(conn, 200)["data"]
 
       conn = get(conn, Routes.category_path(conn, :show, id))
@@ -70,7 +72,9 @@ defmodule AheTrackerPeteWeb.CategoryControllerTest do
     end
 
     test "renders errors when data is invalid", %{conn: conn, category: category} do
-      conn = put(conn, Routes.category_path(conn, :update, category), category: @invalid_attrs)
+      conn =
+        put(conn, Routes.category_path(conn, :update, category), category: @invalid_category_attrs)
+
       assert json_response(conn, 422)["errors"] != %{}
     end
   end

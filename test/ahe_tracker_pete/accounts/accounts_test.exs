@@ -7,24 +7,24 @@ defmodule AheTrackerPete.AccountsTest do
   describe "users" do
     alias AheTrackerPete.Accounts.User
 
-    @valid_attrs %{
+    @valid_user_attrs %{
       email: "some email",
       first_name: "some first_name",
       last_name: "some last_name",
       password: "some password"
     }
-    @update_attrs %{
+    @update_user_attrs %{
       email: "some updated email",
       first_name: "some updated first_name",
       last_name: "some updated last_name",
       password: "some updated password"
     }
-    @invalid_attrs %{email: nil, first_name: nil, last_name: nil, password: nil}
+    @invalid_user_attrs %{email: nil, first_name: nil, last_name: nil, password: nil}
 
     def user_fixture(attrs \\ %{}) do
       {:ok, user} =
         attrs
-        |> Enum.into(@valid_attrs)
+        |> Enum.into(@valid_user_attrs)
         |> Accounts.create_user()
 
       user
@@ -41,7 +41,7 @@ defmodule AheTrackerPete.AccountsTest do
     end
 
     test "create_user/1 with valid data creates a user" do
-      assert {:ok, %User{} = user} = Accounts.create_user(@valid_attrs)
+      assert {:ok, %User{} = user} = Accounts.create_user(@valid_user_attrs)
       assert user.email == "some email"
       assert user.first_name == "some first_name"
       assert user.last_name == "some last_name"
@@ -49,12 +49,12 @@ defmodule AheTrackerPete.AccountsTest do
     end
 
     test "create_user/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Accounts.create_user(@invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Accounts.create_user(@invalid_user_attrs)
     end
 
     test "update_user/2 with valid data updates the user" do
       user = user_fixture()
-      assert {:ok, %User{} = user} = Accounts.update_user(user, @update_attrs)
+      assert {:ok, %User{} = user} = Accounts.update_user(user, @update_user_attrs)
 
       assert user.email == "some updated email"
       assert user.first_name == "some updated first_name"
@@ -64,7 +64,7 @@ defmodule AheTrackerPete.AccountsTest do
 
     test "update_user/2 with invalid data returns error changeset" do
       user = user_fixture()
-      assert {:error, %Ecto.Changeset{}} = Accounts.update_user(user, @invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Accounts.update_user(user, @invalid_user_attrs)
       assert user == Accounts.get_user!(user.id)
     end
 
@@ -86,10 +86,11 @@ defmodule AheTrackerPete.AccountsTest do
     end
 
     test "list_counts_for_user/1 returns a list of counts if there are any" do
-      {:ok, vegetables} =
-        Eating.create_food(%{name: "Vegetables", category: "Essential", priority: 1})
+      Eating.create_or_update_category(%{name: "Fake Category 1", priority: 1}, 1)
 
-      {:ok, fruit} = Eating.create_food(%{name: "Fruit", category: "Essential", priority: 2})
+      {:ok, vegetables} = Eating.create_food(%{name: "Vegetables", category_id: 1, priority: 1})
+
+      {:ok, fruit} = Eating.create_food(%{name: "Fruit", category_id: 1, priority: 2})
 
       {:ok, user} =
         Accounts.create_user(%{

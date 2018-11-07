@@ -7,14 +7,26 @@ defmodule AheTrackerPete.EatingTest do
   describe "foods" do
     alias AheTrackerPete.Eating.Food
 
-    @valid_attrs %{category: "some category", name: "some name", priority: 1}
-    @update_attrs %{category: "some updated category", name: "some updated name", priority: 1}
-    @invalid_attrs %{category: nil, name: nil, priority: nil}
+    defp valid_food_attrs() do
+      Eating.create_or_update_category(%{name: "Fake Category 1", priority: 1}, 1)
+
+      %{category_id: 1, name: "some name", priority: 1}
+    end
+
+    defp update_food_attrs() do
+      Eating.create_or_update_category(%{name: "Fake Category 2", priority: 2}, 2)
+
+      %{category_id: 2, name: "some updated name", priority: 2}
+    end
+
+    defp invalid_food_attrs() do
+      %{category: nil, name: nil}
+    end
 
     def food_fixture(attrs \\ %{}) do
       {:ok, food} =
         attrs
-        |> Enum.into(@valid_attrs)
+        |> Enum.into(valid_food_attrs())
         |> Eating.create_food()
 
       food
@@ -31,26 +43,26 @@ defmodule AheTrackerPete.EatingTest do
     end
 
     test "create_food/1 with valid data creates a food" do
-      assert {:ok, %Food{} = food} = Eating.create_food(@valid_attrs)
-      assert food.category == "some category"
+      assert {:ok, %Food{} = food} = Eating.create_food(valid_food_attrs())
+      assert food.category_id == 1
       assert food.name == "some name"
     end
 
     test "create_food/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Eating.create_food(@invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Eating.create_food(invalid_food_attrs())
     end
 
     test "update_food/2 with valid data updates the food" do
       food = food_fixture()
-      assert {:ok, %Food{} = food} = Eating.update_food(food, @update_attrs)
+      assert {:ok, %Food{} = food} = Eating.update_food(food, update_food_attrs())
 
-      assert food.category == "some updated category"
+      assert food.category_id == 2
       assert food.name == "some updated name"
     end
 
     test "update_food/2 with invalid data returns error changeset" do
       food = food_fixture()
-      assert {:error, %Ecto.Changeset{}} = Eating.update_food(food, @invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Eating.update_food(food, invalid_food_attrs())
       assert food == Eating.get_food!(food.id)
     end
 
@@ -69,13 +81,13 @@ defmodule AheTrackerPete.EatingTest do
   describe "counts" do
     alias AheTrackerPete.Eating.Count
 
-    defp valid_attrs(), do: create_attrs(120.5)
-    defp update_attrs(), do: create_attrs(456.7)
-    defp invalid_attrs(), do: create_attrs(nil)
+    defp valid_count_attrs(), do: create_count_attrs(120.5)
+    defp update_count_attrs(), do: create_count_attrs(456.7)
+    defp invalid_count_attrs(), do: create_count_attrs(nil)
 
-    defp create_attrs(counts_count) do
-      {:ok, food} =
-        Eating.create_or_update_food(%{name: "Vegetables", category: "Essential", priority: 1}, 1)
+    defp create_count_attrs(counts_count) do
+      Eating.create_or_update_category(%{name: "Fake Category 1", priority: 1}, 1)
+      Eating.create_or_update_food(%{name: "Vegetables", category_id: 1, priority: 1}, 1)
 
       {:ok, user} =
         Accounts.create_user(%{
@@ -85,13 +97,13 @@ defmodule AheTrackerPete.EatingTest do
           password: "password"
         })
 
-      %{count: counts_count, user_id: user.id, food_id: food.id}
+      %{count: counts_count, user_id: user.id, food_id: 1}
     end
 
     def count_fixture(attrs \\ %{}) do
       {:ok, count} =
         attrs
-        |> Enum.into(valid_attrs())
+        |> Enum.into(valid_count_attrs())
         |> Eating.create_count()
 
       count
@@ -108,24 +120,24 @@ defmodule AheTrackerPete.EatingTest do
     end
 
     test "create_count/1 with valid data creates a count" do
-      assert {:ok, %Count{} = count} = Eating.create_count(valid_attrs())
+      assert {:ok, %Count{} = count} = Eating.create_count(valid_count_attrs())
       assert count.count == 120.5
     end
 
     test "create_count/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Eating.create_count(invalid_attrs())
+      assert {:error, %Ecto.Changeset{}} = Eating.create_count(invalid_count_attrs())
     end
 
     test "update_count/2 with valid data updates the count" do
       count = count_fixture()
-      assert {:ok, %Count{} = count} = Eating.update_count(count, update_attrs())
+      assert {:ok, %Count{} = count} = Eating.update_count(count, update_count_attrs())
 
       assert count.count == 456.7
     end
 
     test "update_count/2 with invalid data returns error changeset" do
       count = count_fixture()
-      assert {:error, %Ecto.Changeset{}} = Eating.update_count(count, invalid_attrs())
+      assert {:error, %Ecto.Changeset{}} = Eating.update_count(count, invalid_count_attrs())
       assert count == Eating.get_count!(count.id)
     end
 
@@ -144,14 +156,14 @@ defmodule AheTrackerPete.EatingTest do
   describe "categories" do
     alias AheTrackerPete.Eating.Category
 
-    @valid_attrs %{name: "some name", priority: 42}
-    @update_attrs %{name: "some updated name", priority: 43}
-    @invalid_attrs %{name: nil, priority: nil}
+    @valid_category_attrs %{name: "some name", priority: 42}
+    @update_category_attrs %{name: "some updated name", priority: 43}
+    @invalid_category_attrs %{name: nil, priority: nil}
 
     def category_fixture(attrs \\ %{}) do
       {:ok, category} =
         attrs
-        |> Enum.into(@valid_attrs)
+        |> Enum.into(@valid_category_attrs)
         |> Eating.create_category()
 
       category
@@ -168,18 +180,20 @@ defmodule AheTrackerPete.EatingTest do
     end
 
     test "create_category/1 with valid data creates a category" do
-      assert {:ok, %Category{} = category} = Eating.create_category(@valid_attrs)
+      assert {:ok, %Category{} = category} = Eating.create_category(@valid_category_attrs)
       assert category.name == "some name"
       assert category.priority == 42
     end
 
     test "create_category/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Eating.create_category(@invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Eating.create_category(@invalid_category_attrs)
     end
 
     test "update_category/2 with valid data updates the category" do
       category = category_fixture()
-      assert {:ok, %Category{} = category} = Eating.update_category(category, @update_attrs)
+
+      assert {:ok, %Category{} = category} =
+               Eating.update_category(category, @update_category_attrs)
 
       assert category.name == "some updated name"
       assert category.priority == 43
@@ -187,7 +201,10 @@ defmodule AheTrackerPete.EatingTest do
 
     test "update_category/2 with invalid data returns error changeset" do
       category = category_fixture()
-      assert {:error, %Ecto.Changeset{}} = Eating.update_category(category, @invalid_attrs)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Eating.update_category(category, @invalid_category_attrs)
+
       assert category == Eating.get_category!(category.id)
     end
 

@@ -278,6 +278,19 @@ defmodule AheTrackerPete.Eating do
   end
 
   @doc """
+  Create or update a category.
+
+  """
+  def create_or_update_category(category, id) do
+    case Repo.get(Category, id) do
+      nil -> %Category{id: id}
+      category -> category
+    end
+    |> Category.changeset(category)
+    |> Repo.insert_or_update()
+  end
+
+  @doc """
   Deletes a Category.
 
   ## Examples
