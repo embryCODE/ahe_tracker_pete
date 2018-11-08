@@ -26,4 +26,8 @@ defmodule AheTrackerPeteWeb.UserView do
       counts: render_many(counts, CountView, "count.json")
     }
   end
+
+  def render("jwt.json", %{jwt: jwt}) do
+    %{jwt: jwt}
+  end
 end

@@ -4,6 +4,8 @@ defmodule AheTrackerPeteWeb.UserController do
   alias AheTrackerPete.Accounts
   alias AheTrackerPete.Accounts.User
 
+  alias AheTrackerPete.Guardian
+
   action_fallback(AheTrackerPeteWeb.FallbackController)
 
   def index(conn, _params) do
@@ -12,13 +14,16 @@ defmodule AheTrackerPeteWeb.UserController do
   end
 
   def create(conn, %{"user" => user_params}) do
-    with {:ok, %User{} = user} <- Accounts.create_user(user_params) do
+    with {:ok, %User{} = user} <- Accounts.create_user(user_params),
+         {:ok, token, _claims} <- Guardian.encode_and_sign(user) do
       Accounts.init_counts_for_user(user)
 
-      conn
-      |> put_status(:created)
-      |> put_resp_header("location", Routes.user_path(conn, :show, user))
-      |> render("show.json", user: user)
+      conn |> render("jwt.json", jwt: token)
+
+      #      conn
+      #      |> put_status(:created)
+      #      |> put_resp_header("location", Routes.user_path(conn, :show, user))
+      #      |> render("show.json", user: user)
     end
   end
 

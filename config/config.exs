@@ -29,3 +29,8 @@ config :ecto, :json_library, Jason
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
+
+# Guardian config
+config :ahe_tracker_pete, AheTrackerPete.Guardian,
+  issuer: "ahe_tracker_pete",
+  secret_key: "epuW2Qz4+p0C6w9ppfthHuL8r2JrbYMCepQlAGdzGFmtldYdDFwhMQDHBVD8hNZv"

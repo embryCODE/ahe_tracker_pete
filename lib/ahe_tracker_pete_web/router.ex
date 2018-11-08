@@ -23,7 +23,7 @@ defmodule AheTrackerPeteWeb.Router do
   scope "/api", AheTrackerPeteWeb do
     pipe_through(:api)
 
-    resources("/users", UserController, except: [:new, :edit])
+    post("/sign_up", UserController, :create)
     get("/users/:id/counts", UserController, :list_counts_for_user)
 
     resources("/foods", FoodController, except: [:new, :edit])
