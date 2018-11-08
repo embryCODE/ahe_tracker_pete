@@ -1,4 +1,4 @@
-module Food exposing (Food, listFoodsRequest)
+module Food exposing (Food, listFoodsRequest, encode, decode)
 
 import Http
 import Json.Decode as D
@@ -30,6 +30,16 @@ toReadFoodsUrl =
 
 
 -- JSON
+
+
+encode : Food -> E.Value
+encode food =
+    E.object
+        [ ( "name", E.string food.name )
+        , ( "category_id", E.int food.category_id )
+        , ( "priority", E.int food.priority )
+        , ( "id", E.int food.id )
+        ]
 
 
 decode : D.Decoder Food

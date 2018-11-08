@@ -8,18 +8,26 @@ defmodule AheTrackerPete.AccountsTest do
     alias AheTrackerPete.Accounts.User
 
     @valid_user_attrs %{
-      email: "some email",
+      email: "example@example.com",
       first_name: "some first_name",
       last_name: "some last_name",
-      password: "some password"
+      password: "some password",
+      password_confirmation: "some password"
     }
     @update_user_attrs %{
-      email: "some updated email",
+      email: "updated@example.com",
       first_name: "some updated first_name",
       last_name: "some updated last_name",
-      password: "some updated password"
+      password: "some updated password",
+      password_confirmation: "some updated password"
     }
-    @invalid_user_attrs %{email: nil, first_name: nil, last_name: nil, password: nil}
+    @invalid_user_attrs %{
+      email: nil,
+      first_name: nil,
+      last_name: nil,
+      password: nil,
+      password_confirmation: nil
+    }
 
     def user_fixture(attrs \\ %{}) do
       {:ok, user} =
@@ -42,10 +50,9 @@ defmodule AheTrackerPete.AccountsTest do
 
     test "create_user/1 with valid data creates a user" do
       assert {:ok, %User{} = user} = Accounts.create_user(@valid_user_attrs)
-      assert user.email == "some email"
+      assert user.email == "example@example.com"
       assert user.first_name == "some first_name"
       assert user.last_name == "some last_name"
-      assert user.password == "some password"
     end
 
     test "create_user/1 with invalid data returns error changeset" do
@@ -56,10 +63,9 @@ defmodule AheTrackerPete.AccountsTest do
       user = user_fixture()
       assert {:ok, %User{} = user} = Accounts.update_user(user, @update_user_attrs)
 
-      assert user.email == "some updated email"
+      assert user.email == "updated@example.com"
       assert user.first_name == "some updated first_name"
       assert user.last_name == "some updated last_name"
-      assert user.password == "some updated password"
     end
 
     test "update_user/2 with invalid data returns error changeset" do

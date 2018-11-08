@@ -1,4 +1,4 @@
-module Category exposing (Category, listCategoriesRequest)
+module Category exposing (Category, listCategoriesRequest, encode, decode)
 
 import Http
 import Json.Decode as D
@@ -29,6 +29,15 @@ toReadCategoriesUrl =
 
 
 -- JSON
+
+
+encode : Category -> E.Value
+encode category =
+    E.object
+        [ ( "id", E.int category.id )
+        , ( "name", E.string category.name )
+        , ( "priority", E.int category.priority )
+        ]
 
 
 decode : D.Decoder Category

@@ -77,6 +77,19 @@ defmodule AheTrackerPete.Accounts do
   end
 
   @doc """
+  Create or update a user.
+
+  """
+  def create_or_update_user(user, id) do
+    case Repo.get(User, id) do
+      nil -> %User{id: id}
+      user -> user
+    end
+    |> User.changeset(user)
+    |> Repo.insert_or_update()
+  end
+
+  @doc """
   Deletes a User.
 
   ## Examples

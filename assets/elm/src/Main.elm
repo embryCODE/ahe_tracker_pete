@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Browser
 import Html exposing (..)
@@ -11,6 +11,8 @@ import User exposing (User)
 import Category exposing (Category)
 import Food exposing (Food)
 import Count exposing (Count)
+import Json.Encode as E
+import Json.Decode as D
 
 
 -- TYPES
@@ -35,10 +37,39 @@ type Error
 main =
     Browser.element
         { init = init
-        , update = update
+        , update = updateWithStorage
         , subscriptions = subscriptions
         , view = view
         }
+
+
+port setStorage : E.Value -> Cmd msg
+
+
+updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
+updateWithStorage msg model =
+    let
+        ( newModel, origCommands ) =
+            update msg model
+    in
+        ( newModel, Cmd.batch [ setStorage (convertModelToJson newModel), origCommands ] )
+
+
+convertModelToJson : Model -> E.Value
+convertModelToJson model =
+    E.object
+        [ ( "userIdInput", E.string model.userIdInput )
+        , ( "user", User.encode model.user )
+        , ( "categories", E.list Category.encode model.categories )
+        , ( "foods", E.list Food.encode model.foods )
+        , ( "counts", E.list Count.encode model.counts )
+        , ( "errors", E.list convertErrorToJson model.errors )
+        ]
+
+
+convertErrorToJson : Error -> E.Value
+convertErrorToJson error =
+    E.string (convertErrorToString error)
 
 
 
@@ -55,16 +86,44 @@ type alias Model =
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( emptyModel
-    , Cmd.batch
-        [ Http.send ReceiveFoods Food.listFoodsRequest
-        , Http.send ReceiveCategories Category.listCategoriesRequest
-        , Http.send ReceiveUser (User.readUserRequest 2)
-        , Http.send ReceiveCountsForUser (Count.listCountsForUserRequest 2)
-        ]
-    )
+init : Maybe E.Value -> ( Model, Cmd Msg )
+init maybeModel =
+    case maybeModel of
+        Just modelFromLocalStorage ->
+            ( convertJsonToModel modelFromLocalStorage
+            , Cmd.batch
+                [ Http.send ReceiveFoods Food.listFoodsRequest
+                , Http.send ReceiveCategories Category.listCategoriesRequest
+                ]
+            )
+
+        Nothing ->
+            ( emptyModel
+            , Cmd.batch
+                [ Http.send ReceiveFoods Food.listFoodsRequest
+                , Http.send ReceiveCategories Category.listCategoriesRequest
+                ]
+            )
+
+
+convertJsonToModel : E.Value -> Model
+convertJsonToModel value =
+    Result.withDefault emptyModel (D.decodeValue modelDecoder value)
+
+
+modelDecoder =
+    D.map6 Model
+        (D.at [ "userIdInput" ] D.string)
+        (D.at [ "user" ] User.decode)
+        (D.at [ "categories" ] (D.list Category.decode))
+        (D.at [ "foods" ] (D.list Food.decode))
+        (D.at [ "counts" ] (D.list Count.decode))
+        (D.at [ "errors" ] (D.list decodeError))
+
+
+decodeError : D.Decoder Error
+decodeError =
+    D.map LoginError D.string
 
 
 emptyModel =

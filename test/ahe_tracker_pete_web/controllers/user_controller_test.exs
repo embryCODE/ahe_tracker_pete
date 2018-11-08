@@ -5,16 +5,18 @@ defmodule AheTrackerPeteWeb.UserControllerTest do
   alias AheTrackerPete.Accounts.User
 
   @create_attrs %{
-    email: "some email",
+    email: "example@example.com",
     first_name: "some first_name",
     last_name: "some last_name",
-    password: "some password"
+    password: "some password",
+    password_confirmation: "some password"
   }
   @update_attrs %{
-    email: "some updated email",
+    email: "updated@example.com",
     first_name: "some updated first_name",
     last_name: "some updated last_name",
-    password: "some updated password"
+    password: "some updated password",
+    password_confirmation: "some updated password"
   }
   @invalid_attrs %{email: nil, first_name: nil, last_name: nil, password: nil}
 
@@ -43,10 +45,9 @@ defmodule AheTrackerPeteWeb.UserControllerTest do
 
       assert %{
                "id" => id,
-               "email" => "some email",
+               "email" => "example@example.com",
                "first_name" => "some first_name",
-               "last_name" => "some last_name",
-               "password" => "some password"
+               "last_name" => "some last_name"
              } = json_response(conn, 200)["data"]
     end
 
@@ -67,10 +68,9 @@ defmodule AheTrackerPeteWeb.UserControllerTest do
 
       assert %{
                "id" => id,
-               "email" => "some updated email",
+               "email" => "updated@example.com",
                "first_name" => "some updated first_name",
-               "last_name" => "some updated last_name",
-               "password" => "some updated password"
+               "last_name" => "some updated last_name"
              } = json_response(conn, 200)["data"]
     end
 

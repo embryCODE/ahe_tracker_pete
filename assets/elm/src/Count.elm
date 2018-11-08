@@ -1,4 +1,4 @@
-module Count exposing (Count, listCountsForUserRequest, updateCountRequest)
+module Count exposing (Count, listCountsForUserRequest, updateCountRequest, encode, decode)
 
 import Http
 import Json.Decode as D
@@ -20,7 +20,7 @@ type alias Count =
 
 updateCountRequest : ( Count, Float ) -> Http.Request Count
 updateCountRequest args =
-    put (toUpdateFoodCountUrl args) (Http.jsonBody (encode args))
+    put (toUpdateFoodCountUrl args) (Http.jsonBody (encodeForApi args))
 
 
 put : String -> Http.Body -> Http.Request Count
@@ -63,17 +63,8 @@ toListCountsForUserUrl userId =
 -- JSON
 
 
-decode : D.Decoder Count
-decode =
-    D.map4 Count
-        (D.at [ "id" ] D.int)
-        (D.at [ "user_id" ] D.int)
-        (D.at [ "food_id" ] D.int)
-        (D.at [ "count" ] D.float)
-
-
-encode : ( Count, Float ) -> E.Value
-encode ( origCount, newCount ) =
+encodeForApi : ( Count, Float ) -> E.Value
+encodeForApi ( origCount, newCount ) =
     E.object
         [ ( "count"
           , E.object
@@ -83,3 +74,22 @@ encode ( origCount, newCount ) =
                 ]
           )
         ]
+
+
+encode : Count -> E.Value
+encode count =
+    E.object
+        [ ( "count", E.float count.count )
+        , ( "food_id", E.int count.food_id )
+        , ( "user_id", E.int count.user_id )
+        , ( "id", E.int count.id )
+        ]
+
+
+decode : D.Decoder Count
+decode =
+    D.map4 Count
+        (D.at [ "id" ] D.int)
+        (D.at [ "user_id" ] D.int)
+        (D.at [ "food_id" ] D.int)
+        (D.at [ "count" ] D.float)
