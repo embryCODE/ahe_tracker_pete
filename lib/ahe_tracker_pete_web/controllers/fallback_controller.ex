@@ -19,4 +19,10 @@ defmodule AheTrackerPeteWeb.FallbackController do
     |> put_view(AheTrackerPeteWeb.ErrorView)
     |> render(:"404")
   end
+
+  def call(conn, {:error, :unauthorized}) do
+    conn
+    |> put_status(:unauthorized)
+    |> json(%{error: "Login error"})
+  end
 end

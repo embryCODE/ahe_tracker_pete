@@ -23,7 +23,11 @@ defmodule AheTrackerPeteWeb.Router do
   scope "/api", AheTrackerPeteWeb do
     pipe_through(:api)
 
+    # GUARDIAN SETUP
     post("/sign_up", UserController, :create)
+    post("/sign_in", UserController, :sign_in)
+    # END GUARDIAN SETUP
+
     get("/users/:id/counts", UserController, :list_counts_for_user)
 
     resources("/foods", FoodController, except: [:new, :edit])

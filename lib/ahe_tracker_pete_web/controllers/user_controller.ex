@@ -54,4 +54,16 @@ defmodule AheTrackerPeteWeb.UserController do
 
     render(conn, "user_with_counts.json", user: user, counts: counts)
   end
+
+  # GUARDIAN SETUP
+
+  def sign_in(conn, %{"email" => email, "password" => password}) do
+    case Accounts.token_sign_in(email, password) do
+      {:ok, token, _claims} ->
+        conn |> render("jwt.json", jwt: token)
+
+      _ ->
+        {:error, :unauthorized}
+    end
+  end
 end
