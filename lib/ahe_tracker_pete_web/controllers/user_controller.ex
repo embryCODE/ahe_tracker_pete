@@ -27,9 +27,12 @@ defmodule AheTrackerPeteWeb.UserController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
-    user = Accounts.get_user!(id)
+  def show(conn, _params) do
+    user = Guardian.Plug.current_resource(conn)
     render(conn, "show.json", user: user)
+
+    #    user = Accounts.get_user!(id)
+    #    render(conn, "show.json", user: user)
   end
 
   def update(conn, %{"id" => id, "user" => user_params}) do
@@ -48,11 +51,15 @@ defmodule AheTrackerPeteWeb.UserController do
     end
   end
 
-  def list_counts_for_user(conn, %{"id" => id}) do
-    user = Accounts.get_user!(id)
+  def list_counts_for_user(conn, _params) do
+    user = Guardian.Plug.current_resource(conn)
     counts = Accounts.list_counts_for_user(user)
-
     render(conn, "user_with_counts.json", user: user, counts: counts)
+
+    #    user = Accounts.get_user!(id)
+    #    counts = Accounts.list_counts_for_user(user)
+    #
+    #    render(conn, "user_with_counts.json", user: user, counts: counts)
   end
 
   # GUARDIAN SETUP

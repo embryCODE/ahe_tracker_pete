@@ -146,6 +146,12 @@ defmodule AheTrackerPete.Eating do
   def get_count!(id), do: Repo.get!(Count, id)
 
   @doc """
+  Gets a single count by a certain user.
+
+  """
+  def get_count_for_user!(id, user_id), do: Repo.get_by!(Count, id: id, user_id: user_id)
+
+  @doc """
   Creates a count.
 
   ## Examples

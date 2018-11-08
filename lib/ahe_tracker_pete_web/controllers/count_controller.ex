@@ -40,4 +40,13 @@ defmodule AheTrackerPeteWeb.CountController do
       send_resp(conn, :no_content, "")
     end
   end
+
+  def update_count_for_user(conn, %{"id" => id, "count" => count_params}) do
+    user = Guardian.Plug.current_resource(conn)
+    count = Eating.get_count_for_user!(id, user.id)
+
+    with {:ok, %Count{} = count} <- Eating.update_count(count, count_params) do
+      render(conn, "show.json", count: count)
+    end
+  end
 end
