@@ -35,7 +35,7 @@ defmodule AheTrackerPete.AccountsTest do
         |> Enum.into(@valid_user_attrs)
         |> Accounts.create_user()
 
-      user
+      %User{user | password: nil, password_confirmation: nil}
     end
 
     test "list_users/0 returns all users" do
@@ -103,7 +103,8 @@ defmodule AheTrackerPete.AccountsTest do
           first_name: "Testy",
           last_name: "McTesterson",
           email: "testy@example.com",
-          password: "password"
+          password: "password",
+          password_confirmation: "password"
         })
 
       Eating.create_count(%{

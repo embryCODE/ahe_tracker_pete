@@ -89,15 +89,18 @@ defmodule AheTrackerPete.EatingTest do
       Eating.create_or_update_category(%{name: "Fake Category 1", priority: 1}, 1)
       Eating.create_or_update_food(%{name: "Vegetables", category_id: 1, priority: 1}, 1)
 
-      {:ok, user} =
-        Accounts.create_user(%{
+      Accounts.create_or_update_user(
+        %{
           first_name: "Testy",
           last_name: "McTesterson",
           email: "testy@example.com",
-          password: "password"
-        })
+          password: "password",
+          password_confirmation: "password"
+        },
+        1
+      )
 
-      %{count: counts_count, user_id: user.id, food_id: 1}
+      %{count: counts_count, user_id: 1, food_id: 1}
     end
 
     def count_fixture(attrs \\ %{}) do
