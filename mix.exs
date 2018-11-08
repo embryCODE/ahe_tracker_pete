@@ -33,16 +33,15 @@ defmodule AheTrackerPete.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      # override: true added to allow installation of :guardian
-      {:phoenix, "~> 1.4.0-rc", override: true},
+      {:phoenix, "~> 1.4.0"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_ecto, "~> 3.2"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2-rc", only: :dev},
+      {:plug_cowboy, "~> 2.0"},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:cowboy, "~> 1.0"},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
       {:comeonin, "~> 4.0"},
       {:bcrypt_elixir, "~> 1.0"},
